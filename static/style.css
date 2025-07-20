@@ -1,0 +1,118 @@
+/* static/style.css */
+
+body {
+  font-family: "Inter", sans-serif;
+  background-color: #f4f7f9;
+  color: #333;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  margin: 0;
+  padding: 2rem;
+}
+
+.container {
+  width: 100%;
+  max-width: 700px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  padding: 2.5rem;
+  text-align: center;
+}
+
+header h1 {
+  font-size: 2rem;
+  color: #1a202c;
+  margin-bottom: 0.5rem;
+}
+
+header p {
+  font-size: 1.1rem;
+  color: #5a677d;
+  margin-bottom: 2rem;
+}
+
+form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+form input[type="url"] {
+  flex-grow: 1;
+  padding: 0.8rem 1rem;
+  border: 1px solid #dbe1e8;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+form input[type="url"]:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
+}
+
+form button {
+  padding: 0.8rem 1.5rem;
+  background: linear-gradient(45deg, #4a90e2, #50e3c2);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+form button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.result-box {
+  text-align: left;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+  line-height: 1.6;
+}
+
+.result-box h3 {
+  margin-top: 0;
+  color: #1a202c;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.result-box.error {
+  background-color: #fff5f5;
+  border-color: #f56565;
+  color: #c53030;
+}
+.result-box.error h3 {
+  color: #c53030;
+  border-color: #f5c6c6;
+}
+
+/* Styles for Markdown content */
+.result-box ul {
+  padding-left: 20px;
+}
+.result-box li {
+  margin-bottom: 0.5rem;
+}
+.result-box strong {
+  color: #2d3748;
+}
+
+footer {
+  margin-top: 2rem;
+  font-size: 0.9rem;
+  color: #8a9cb1;
+}

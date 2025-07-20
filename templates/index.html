@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GitHub Repo Analyzer</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>🤖 GitHub Repo Analyzer</h1>
+        <p>
+          Get an AI-powered README summary and project structure analysis for
+          any public repo.
+        </p>
+      </header>
+
+      <main>
+        <form action="/" method="POST">
+          <input
+            type="url"
+            name="repo_url"
+            placeholder="e.g., https://github.com/facebook/react"
+            value="{{ repo_url or '' }}"
+            required
+          />
+          <button type="submit">Analyze ✨</button>
+        </form>
+
+        {% if error %}
+        <div class="result-box error">
+          <h3>Error</h3>
+          <p>{{ error | replace('\n', '<br />') | safe }}</p>
+        </div>
+        {% endif %} {% if readme_summary %}
+        <div class="result-box summary">
+          <h3>📘 README Summary</h3>
+          {{ readme_summary | safe }}
+        </div>
+        {% endif %} {% if structure_analysis %}
+        <div class="result-box analysis">
+          <h3>🏛️ Project Structure Analysis</h3>
+          {{ structure_analysis | safe }}
+        </div>
+        {% endif %}
+      </main>
+
+      <footer>
+        <p>Powered by Flask & Google Gemini</p>
+      </footer>
+    </div>
+  </body>
+</html>
