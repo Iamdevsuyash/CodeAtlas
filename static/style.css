@@ -116,3 +116,14 @@ footer {
   font-size: 0.9rem;
   color: #8a9cb1;
 }
+
+/* Add this to the end of static/style.css */
+
+.result-box.analysis {
+  border-left: 4px solid #50e3c2;
+  margin-top: 1.5rem;
+}
+
+.result-box.summary {
+  border-left: 4px solid #4a90e2;
+}
