@@ -1,5 +1,4 @@
 # app.py
-
 import os
 import re
 import requests
@@ -64,6 +63,7 @@ def summarize_readme_with_gemini(readme_content):
     ---
     {readme_content}
     """
+    
     try:
         response = model.generate_content(prompt)
         print("✅ README summary generated.")
@@ -124,6 +124,31 @@ def analyze_structure_with_gemini(file_structure):
         return markdown(response.text), None
     except Exception as e:
         return None, f"Error generating structure analysis from Gemini: {e}"
+def get_setup_guide_with_gemini(readme, file_structure):
+    prompt = f"""
+    Based on the following README and file structure, guide a junior developer on how to set up and run this project locally.
+
+    Include:
+    1. Required software/tools (e.g., Python, Node.js, Docker)
+    2. Dependency installation commands
+    3. Setup or build commands (if any)
+    4. How to run or test the project
+    5. Environment variable setup (if found in .env or README)
+
+    Format the output in clear Markdown with step-by-step instructions.
+
+    --- README ---
+    {readme}
+
+    --- FILE STRUCTURE ---
+    {file_structure}
+    """
+    try:
+        response = model.generate_content(prompt)
+        print("✅ Setup guide generated.")
+        return markdown(response.text), None
+    except Exception as e:
+        return None, f"Error generating setup guide from Gemini: {e}"
 
 
 # --- Step 3: Flask Route ---
@@ -131,6 +156,7 @@ def analyze_structure_with_gemini(file_structure):
 def index():
     readme_summary = None
     structure_analysis = None
+    setup_guide = None   # ✅ Define it here
     error = None
     repo_url = ""
 
@@ -152,17 +178,22 @@ def index():
             # Fetch file structure and generate analysis
             file_structure, structure_err = get_github_file_structure(owner, repo_name)
             if structure_err:
-                # Append error if one already exists
                 error = (error + "\n" + structure_err) if error else structure_err
             else:
                 structure_analysis, analysis_err = analyze_structure_with_gemini(file_structure)
                 if analysis_err:
                     error = (error + "\n" + analysis_err) if error else analysis_err
 
+            # ✅ Generate setup guide
+            setup_guide, setup_err = get_setup_guide_with_gemini(readme_content, file_structure)
+            if setup_err:
+                error = (error + "\n" + setup_err) if error else setup_err
+
     return render_template(
         'index.html',
         readme_summary=readme_summary,
         structure_analysis=structure_analysis,
+        setup_guide=setup_guide,
         error=error,
         repo_url=repo_url
     )

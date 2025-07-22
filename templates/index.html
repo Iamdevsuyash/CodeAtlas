@@ -52,6 +52,9 @@
           <h3>🏛️ Project Structure Analysis</h3>
           {{ structure_analysis | safe }}
         </div>
+        {% endif %} {% if setup_guide %}
+        <h3>🚀 How to Get Started</h3>
+        <div class="markdown">{{ setup_guide | safe }}</div>
         {% endif %}
       </main>
 
