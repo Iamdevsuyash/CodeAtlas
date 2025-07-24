@@ -7,6 +7,7 @@ import google.generativeai as genai
 from flask import Flask, render_template, request
 from dotenv import load_dotenv
 from markdown import markdown
+from datetime import datetime, timedelta
 
 # --- Step 1: Load API Keys & Configure ---
 load_dotenv()
@@ -150,15 +151,54 @@ def get_setup_guide_with_gemini(readme, file_structure):
     except Exception as e:
         return None, f"Error generating setup guide from Gemini: {e}"
 
+# --- Trending/Beginner-Friendly Repo Search ---
+def search_trending_repos(language=None, max_results=3, search_query=None):
+    """
+    Search GitHub for top repositories related to the search_query, ranked by stars and forks.
+    """
+    print("🔎 Searching for top repos by stars and forks...")
+    headers = {"Authorization": f"Bearer {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
+    q = []
+    if search_query:
+        q.append(f"{search_query}")
+    if language:
+        q.append(f"language:{language}")
+    # Only recent repos (last 2 years)
+    since = (datetime.utcnow() - timedelta(days=730)).strftime('%Y-%m-%d')
+    q.append(f"created:>={since}")
+    query = '+'.join(q) if q else 'stars:>1'
+    url = f"https://api.github.com/search/repositories?q={query}&sort=stars&order=desc&per_page=20"
+    try:
+        resp = requests.get(url, headers=headers, timeout=15)
+        resp.raise_for_status()
+        items = resp.json().get('items', [])
+        # Sort by stars and forks (stars weighted more)
+        def score(repo):
+            return repo.get('stargazers_count', 0) * 2 + repo.get('forks_count', 0)
+        items.sort(key=score, reverse=True)
+        top = items[:max_results]
+        result = [{
+            'name': r['full_name'],
+            'url': r['html_url'],
+            'stars': r['stargazers_count'],
+            'description': r['description'] or '',
+            'forks': r['forks_count'],
+        } for r in top]
+        print(f"✅ Found {len(result)} top repos.")
+        return result, None
+    except Exception as e:
+        return None, f"Error searching top repos: {e}"
 
 # --- Step 3: Flask Route ---
 @app.route('/', methods=['GET', 'POST'])
 def index():
     readme_summary = None
     structure_analysis = None
-    setup_guide = None   # ✅ Define it here
+    setup_guide = None
+    trending_repos = None
     error = None
     repo_url = ""
+    search_query = request.args.get('search_query', default=None, type=str)
 
     if request.method == 'POST':
         repo_url = request.form.get('repo_url')
@@ -184,18 +224,28 @@ def index():
                 if analysis_err:
                     error = (error + "\n" + analysis_err) if error else analysis_err
 
-            # ✅ Generate setup guide
-            setup_guide, setup_err = get_setup_guide_with_gemini(readme_content, file_structure)
-            if setup_err:
-                error = (error + "\n" + setup_err) if error else setup_err
+            # Generate setup guide
+            if readme_content and file_structure:
+                setup_guide, setup_err = get_setup_guide_with_gemini(readme_content, file_structure)
+                if setup_err:
+                    error = (error + "\n" + setup_err) if error else setup_err
+
+        # Always show trending repos (optionally filter by language from repo)
+        trending_repos, _ = search_trending_repos(search_query=search_query)
+
+    else:
+        # On GET, show trending repos by default or by search
+        trending_repos, _ = search_trending_repos(search_query=search_query)
 
     return render_template(
         'index.html',
         readme_summary=readme_summary,
         structure_analysis=structure_analysis,
         setup_guide=setup_guide,
+        trending_repos=trending_repos,
         error=error,
-        repo_url=repo_url
+        repo_url=repo_url,
+        search_query=search_query
     )
 
 # --- Run the App ---

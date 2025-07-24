@@ -1421,6 +1421,12 @@
                         </svg>
                         Analyser
                     </div>
+                    <div class="sidebar-tab" data-section="trending">
+                        <svg class="tab-icon" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M1.5 1.5A.5.5 0 012 1h12a.5.5 0 01.5.5v2a.5.5 0 01-.5.5H2a.5.5 0 01-.5-.5v-2zM2 5h12v9a1 1 0 01-1 1H3a1 1 0 01-1-1V5z"/>
+                        </svg>
+                        Trending
+                    </div>
                     <div class="sidebar-tab" data-section="related">
                         <svg class="tab-icon" viewBox="0 0 16 16" fill="currentColor">
                             <path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/>
@@ -1510,6 +1516,37 @@
                                         {% endif %}
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Trending Repos Section -->
+                    <div id="trending-content" class="section-content" style="display:none;">
+                        <div class="analyzer-section">
+                            <form class="search-container" method="GET" action="/">
+                                 <input type="hidden" name="active_section" value="trending">
+                                <input type="text" class="search-input" name="search_query" placeholder="Search for trending projects (e.g., 'python data science', 'react components')" value="{{ search_query|default('') }}">
+                                <button class="analyze-btn" type="submit">Search</button>
+                            </form>
+                    
+                            <div class="tools-grid">
+                                {% if trending_repos %}
+                                    {% for repo in trending_repos %}
+                                    <div class="tool-card">
+                                        <div class="tool-title" style="display: flex; justify-content: space-between; align-items: center;">
+                                            <a href="{{ repo.url }}" target="_blank" class="tool-link">{{ repo.name }}</a>
+                                            <div style="display: flex; gap: 15px; font-size: 12px;">
+                                                <span>⭐ {{ repo.stars }}</span>
+                                                <span>🍴 {{ repo.forks }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="tool-desc">{{ repo.description }}</div>
+                                        <button class="post-btn" style="padding: 3px 8px; font-size: 10px;" onclick="analyzeRepo('{{ repo.url }}')">Analyze</button>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="empty-state">No trending repositories found.</div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -2310,6 +2347,19 @@
         document.addEventListener('click', (e) => {
             if (e.target.classList.contains('modal-overlay')) {
                 closeModal();
+            }
+        });
+
+        function analyzeRepo(repoUrl) {
+            document.getElementById('repoInput').value = repoUrl;
+            document.querySelector('form.search-container button[type="submit"]').click();
+        }
+
+        // On page load, check if we need to show the trending tab
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('active_section') === 'trending') {
+                document.querySelector('.sidebar-tab[data-section="trending"]').click();
             }
         });
     </script>
