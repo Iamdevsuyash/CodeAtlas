@@ -10,7 +10,7 @@ from markdown import markdown
 
 # --- Step 1: Load API Keys & Configure ---
 load_dotenv()
-app = Flask(__name__)
+app = Flask(__name__, template_folder='templates', static_folder='static')
 
 # Securely load API keys
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
