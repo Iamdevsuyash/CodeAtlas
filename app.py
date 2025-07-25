@@ -125,6 +125,7 @@ def analyze_structure_with_gemini(file_structure):
         return markdown(response.text), None
     except Exception as e:
         return None, f"Error generating structure analysis from Gemini: {e}"
+    
 def get_setup_guide_with_gemini(readme, file_structure):
     prompt = f"""
     Based on the following README and file structure, guide a junior developer on how to set up and run this project locally.
@@ -152,7 +153,7 @@ def get_setup_guide_with_gemini(readme, file_structure):
         return None, f"Error generating setup guide from Gemini: {e}"
 
 # --- Trending/Beginner-Friendly Repo Search ---
-def search_trending_repos(language=None, max_results=3, search_query=None):
+def search_trending_repos(language=None, max_results=12, search_query=None):
     """
     Search GitHub for top repositories related to the search_query, ranked by stars and forks.
     """
