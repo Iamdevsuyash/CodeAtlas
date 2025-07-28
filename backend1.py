@@ -177,6 +177,29 @@ def status():
         return jsonify({"logged_in": True, "user": {"username": current_user.username}}), 200
     return jsonify({"logged_in": False}), 200
 
+# --- API Hub Routes ---
+@app.route('/api/apihub/categories', methods=['GET'])
+@login_required
+def get_api_categories():
+    try:
+        response = requests.get('https://api.publicapis.org/categories')
+        response.raise_for_status()
+        return jsonify(response.json())
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": f"Failed to fetch API categories: {e}"}), 500
+
+@app.route('/api/apihub/entries', methods=['GET'])
+@login_required
+def get_api_entries():
+    category = request.args.get('category')
+    if not category:
+        return jsonify({"error": "Category parameter is required"}), 400
+    try:
+        response = requests.get(f'https://api.publicapis.org/entries?category={category}')
+        response.raise_for_status()
+        return jsonify(response.json())
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": f"Failed to fetch API entries: {e}"}), 500
 
 # --- API Routes ---
 @app.route('/api/analyze', methods=['POST'])
