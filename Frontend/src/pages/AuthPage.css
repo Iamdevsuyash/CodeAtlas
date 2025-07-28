@@ -1,0 +1,45 @@
+/* AuthPage specific styles */
+.auth-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: #1a1d2e;
+}
+
+.auth-container {
+    display: flex;
+    width: 80%;
+    max-width: 1200px;
+    background: #25283d;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.auth-info {
+    flex: 1;
+    padding: 50px;
+    background: linear-gradient(135deg, #7c4dff, #4a148c);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.info-content h2 {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+}
+
+.info-content p {
+    font-size: 1.2rem;
+}
+
+.auth-form-section {
+    flex: 1;
+    padding: 50px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+} 
