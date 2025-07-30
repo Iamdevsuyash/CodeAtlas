@@ -6,17 +6,17 @@ import AuthPage from './pages/AuthPage';
 import './App.css';
 
 const PrivateRoute = ({ children }) => {
-    const { user, loading } = useAuth();
+  const { user, loading } = useAuth();
 
-    if (loading) {
-        return <div className="loading-fullscreen">Loading...</div>;
-    }
+  if (loading) {
+    return <div className="loading-fullscreen">Loading...</div>;
+  }
 
     return user ? children : <Navigate to="/auth" />;
-};
-
+  };
+  
 function App() {
-    return (
+  return (
         <Router>
             <Routes>
                 <Route path="/auth" element={<AuthPage />} />
@@ -30,7 +30,7 @@ function App() {
                 />
             </Routes>
         </Router>
-    );
+  );
 }
 
 export default App;

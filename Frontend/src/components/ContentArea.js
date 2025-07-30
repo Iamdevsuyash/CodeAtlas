@@ -8,6 +8,7 @@ import IdeasSection from './IdeasSection';
 import MessagesSection from './MessagesSection';
 import ProjectsSection from './ProjectsSection';
 import Header from './Header';
+import ApiHubSection from './ApiHubSection';
 
 const ContentArea = ({ activeSection }) => {
     const renderSection = () => {
@@ -20,6 +21,8 @@ const ContentArea = ({ activeSection }) => {
                 return <RelatedSection />;
             case 'devtools':
                 return <DevToolsSection />;
+            case 'apihub':
+                return <ApiHubSection />;
             case 'ideas':
                 return <IdeasSection />;
             case 'messages':

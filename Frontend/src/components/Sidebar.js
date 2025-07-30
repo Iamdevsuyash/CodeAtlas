@@ -45,6 +45,13 @@ const Sidebar = ({ activeSection, setActiveSection }) => {
                     Dev Tools
                 </div>
                 <div
+                    className={`sidebar-tab ${activeSection === 'apihub' ? 'active' : ''}`}
+                    onClick={() => handleTabClick('apihub')}
+                >
+                    <span className="tab-icon">🔌</span>
+                    API Hub
+                </div>
+                <div
                     className={`sidebar-tab ${activeSection === 'ideas' ? 'active' : ''}`}
                     onClick={() => handleTabClick('ideas')}
                 >

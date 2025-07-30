@@ -1741,3 +1741,61 @@ body {
     cursor: pointer;
     font-size: 0.9rem;
 }
+
+.dev-tools-section h2 {
+    margin-top: 0;
+}
+
+.dev-tools-intro {
+    color: #a0a0a0;
+    font-size: 1.1rem;
+    margin-bottom: 30px;
+}
+
+.tool-category {
+    margin-bottom: 30px;
+}
+
+.tool-category h3 {
+    color: #e0e0e0;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #444;
+    padding-bottom: 10px;
+}
+
+/* API Hub Section */
+.api-hub-section h2 {
+    margin-top: 0;
+}
+
+.category-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.category-card {
+    background-color: #25283d;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s, background-color 0.2s;
+    font-weight: 600;
+}
+
+.category-card:hover {
+    transform: translateY(-5px);
+    background-color: #7c4dff;
+}
+
+.back-button {
+    background-color: #7c4dff;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-bottom: 20px;
+}
