@@ -1,0 +1,9 @@
+Flask
+requests
+python-dotenv
+markdown
+google-generativeai
+flask-cors
+flask-sqlalchemy
+werkzeug
+flask-login

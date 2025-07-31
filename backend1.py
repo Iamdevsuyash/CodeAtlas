@@ -99,7 +99,7 @@ def get_github_readme(owner, repo_name):
 def summarize_readme_with_gemini(readme_content):
     if not readme_content:
         return None, "README content is empty."
-    prompt = f"As a senior software engineer, analyze the following README and provide a concise summary in Markdown format, including project purpose, key features, and technology stack.\n---{readme_content}"
+    prompt = f"Summarize the following README in concise bullet points. Include:\n- Main project purpose (1 bullet)\n- 2-4 key features (bullets)\n- Main technologies (bullets)\nIf there are any code examples, show the most important one as a code snippet.\nFormat your response in Markdown.\n---\n{readme_content}"
     try:
         response = model.generate_content(prompt)
         return markdown(response.text), None
@@ -124,7 +124,7 @@ def get_github_file_structure(owner, repo_name):
 def analyze_structure_with_gemini(file_structure):
     if not file_structure:
         return None, "File structure is empty."
-    prompt = f"You are a principal software architect. Based on the file structure, provide a high-level analysis in Markdown format, including likely architecture, key components, and code organization.\n---{file_structure}"
+    prompt = f"Based only on the file structure below, provide:\n- Project type and likely architecture (1 bullet)\n- 2-4 main components or folders (bullets)\n- Any special scripts or config files (bullets)\nIf you see a main entry point or config, show a code snippet of its filename.\nFormat your response in Markdown.\n---\n{file_structure}"
     try:
         response = model.generate_content(prompt)
         return markdown(response.text), None
@@ -132,7 +132,7 @@ def analyze_structure_with_gemini(file_structure):
         return None, f"Error generating analysis: {e}"
 
 def get_setup_guide_with_gemini(readme, file_structure):
-    prompt = f"Based on the README and file structure, provide a step-by-step setup guide in Markdown format.\n---README---\n{readme}\n---FILE STRUCTURE---\n{file_structure}"
+    prompt = f"Write a brief, step-by-step setup guide for this project as bullet points.\n- List required tools\n- Show install commands as code snippets\n- Show run/test commands as code snippets\n- Mention any .env or config setup if needed\nFormat your response in Markdown.\n---README---\n{readme}\n---FILE STRUCTURE---\n{file_structure}"
     try:
         response = model.generate_content(prompt)
         return markdown(response.text), None
@@ -295,8 +295,39 @@ def add_post():
             return jsonify({'success': False, 'message': 'Database error.'}), 500
     return jsonify({'success': False, 'message': 'Missing repository name or idea.'}), 400
 
+
+# --- Comment (Reply) API ---
+@app.route('/api/posts/<int:post_id>/comments', methods=['GET'])
+def get_comments(post_id):
+    post = Post.query.get_or_404(post_id)
+    comments = Comment.query.filter_by(post_id=post.id).order_by(Comment.timestamp.asc()).all()
+    return jsonify([
+        {
+            'id': c.id,
+            'text': c.text,
+            'timestamp': c.timestamp.strftime('%Y-%m-%d %H:%M')
+        } for c in comments
+    ])
+
+@app.route('/api/posts/<int:post_id>/comments', methods=['POST'])
+@login_required
+def add_comment(post_id):
+    post = Post.query.get_or_404(post_id)
+    data = request.get_json()
+    text = data.get('text')
+    if not text:
+        return jsonify({'success': False, 'message': 'Comment text required.'}), 400
+    try:
+        comment = Comment(text=text, post_id=post.id)
+        db.session.add(comment)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Comment added!'}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': 'Database error.'}), 500
+
 # --- Run the App ---
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(port=5000, debug=True) 
+    app.run(port=5000, debug=True)
