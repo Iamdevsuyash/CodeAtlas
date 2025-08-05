@@ -177,6 +177,15 @@ def status():
         return jsonify({"logged_in": True, "user": {"username": current_user.username}}), 200
     return jsonify({"logged_in": False}), 200
 
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    return jsonify({
+        "status": "OK",
+        "timestamp": datetime.utcnow().isoformat(),
+        "database": "connected" if db.engine else "disconnected"
+    })
+
 # --- API Hub Routes ---
 @app.route('/api/apihub/categories', methods=['GET'])
 @login_required
@@ -268,6 +277,7 @@ def trending_repos_route():
 def get_posts():
     try:
         posts = Post.query.order_by(Post.timestamp.desc()).all()
+        print(f"Found {len(posts)} posts in database")  # Debug log
         return jsonify([{
             'id': post.id,
             'repo_name': post.repo_name,
@@ -276,7 +286,27 @@ def get_posts():
             'comments_count': len(post.comments)
         } for post in posts])
     except Exception as e:
+        print(f"Error fetching posts: {e}")  # Debug log
         return jsonify({"error": "Failed to fetch posts"}), 500
+
+@app.route('/api/test/create-sample-posts', methods=['POST'])
+def create_sample_posts():
+    """Create sample posts for testing"""
+    try:
+        sample_posts = [
+            Post(repo_name="open-webui/open-webui", idea="hello"),
+            Post(repo_name="test/repo", idea="This is a test idea for the community"),
+            Post(repo_name="awesome/project", idea="Building something amazing with React and Node.js")
+        ]
+        
+        for post in sample_posts:
+            db.session.add(post)
+        
+        db.session.commit()
+        return jsonify({"success": True, "message": "Sample posts created successfully!"}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to create sample posts: {e}"}), 500
 
 @app.route('/api/posts', methods=['POST'])
 @login_required
