@@ -28,28 +28,28 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(32))
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', f"sqlite:///tmp/ideas.db")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+# Simplified CORS configuration for reliable cross-origin requests
 CORS(app, 
-     supports_credentials=True, 
-     resources={r"/api/*": {
-         "origins": os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://localhost:3001,https://gitatlas.netlify.app').split(','),
-         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-         "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"]
-     }})
+     supports_credentials=True,
+     origins=['http://localhost:3000', 'http://localhost:3001', 'https://gitatlas.netlify.app'],
+     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+     allow_headers=['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+     expose_headers=['Content-Type', 'Authorization'])
 
 
 login_manager = LoginManager()
 login_manager.init_app(app)
 
-# Handle CORS preflight requests
-@app.before_request
-def handle_preflight():
-    if request.method == "OPTIONS":
-        response = make_response()
-        response.headers.add("Access-Control-Allow-Origin", request.headers.get('Origin', '*'))
-        response.headers.add('Access-Control-Allow-Headers', "Content-Type,Authorization,X-Requested-With")
-        response.headers.add('Access-Control-Allow-Methods', "GET,PUT,POST,DELETE,OPTIONS")
+# Additional CORS headers for reliable cross-origin support
+@app.after_request
+def after_request(response):
+    origin = request.headers.get('Origin')
+    if origin in ['http://localhost:3000', 'http://localhost:3001', 'https://gitatlas.netlify.app']:
+        response.headers.add('Access-Control-Allow-Origin', origin)
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
         response.headers.add('Access-Control-Allow-Credentials', 'true')
-        return response
+    return response
 
 
 # --- Database Models ---
