@@ -22,10 +22,10 @@ app = Flask(__name__)
 os.makedirs(app.instance_path, exist_ok=True)
 
 app.config['SECRET_KEY'] = os.urandom(24)
-app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(app.instance_path, 'ideas.db')}"
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', f"sqlite:///{os.path.join(app.instance_path, 'ideas.db')}")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-CORS(app, supports_credentials=True, resources={r"/api/*": {"origins": ["http://localhost:3000","http://localhost:3001"]}})
+CORS(app, supports_credentials=True, resources={r"/api/*": {"origins": os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://localhost:3001').split(',')}})
 
 
 login_manager = LoginManager()

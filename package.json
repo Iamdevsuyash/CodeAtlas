@@ -1,7 +1,21 @@
 {
+  "name": "codeatlas-gunjs-server",
+  "version": "1.0.0",
+  "description": "Real-time Gun.js server for CodeAtlas team collaboration",
+  "main": "gun-server.js",
+  "scripts": {
+    "start": "node gun-server.js",
+    "dev": "nodemon gun-server.js"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^5.1.0",
-    "gun": "^0.2020.1241"
+    "gun": "^0.2020.1240",
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   }
 }
