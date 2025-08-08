@@ -4,7 +4,7 @@ import re
 import requests
 import base64
 import google.generativeai as genai
-from flask import Flask, request, jsonify, session
+from flask import Flask, request, jsonify, session, make_response
 from flask_cors import CORS
 from dotenv import load_dotenv
 from markdown import markdown
@@ -28,11 +28,28 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(32))
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', f"sqlite:///tmp/ideas.db")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-CORS(app, supports_credentials=True, resources={r"/api/*": {"origins": os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://localhost:3001,https://gitatlas.netlify.app/').split(',')}})
+CORS(app, 
+     supports_credentials=True, 
+     resources={r"/api/*": {
+         "origins": os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://localhost:3001,https://gitatlas.netlify.app').split(','),
+         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+         "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"]
+     }})
 
 
 login_manager = LoginManager()
 login_manager.init_app(app)
+
+# Handle CORS preflight requests
+@app.before_request
+def handle_preflight():
+    if request.method == "OPTIONS":
+        response = make_response()
+        response.headers.add("Access-Control-Allow-Origin", request.headers.get('Origin', '*'))
+        response.headers.add('Access-Control-Allow-Headers', "Content-Type,Authorization,X-Requested-With")
+        response.headers.add('Access-Control-Allow-Methods', "GET,PUT,POST,DELETE,OPTIONS")
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        return response
 
 
 # --- Database Models ---
