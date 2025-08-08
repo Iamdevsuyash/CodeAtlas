@@ -21,8 +21,11 @@ app = Flask(__name__)
 # Ensure the instance folder exists
 os.makedirs(app.instance_path, exist_ok=True)
 
-app.config['SECRET_KEY'] = os.urandom(24)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', f"sqlite:///{os.path.join(app.instance_path, 'ideas.db')}")
+# Ensure tmp directory exists for SQLite in production
+os.makedirs('/tmp', exist_ok=True)
+
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(24))
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', f"sqlite:///tmp/ideas.db")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 CORS(app, supports_credentials=True, resources={r"/api/*": {"origins": os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://localhost:3001').split(',')}})
@@ -360,5 +363,14 @@ def add_comment(post_id):
 # --- Run the App ---
 if __name__ == '__main__':
     with app.app_context():
-        db.create_all()
-    app.run(host="0.0.0.0", port=5000)
+        try:
+            db.create_all()
+            print("✅ Database initialized successfully")
+        except Exception as e:
+            print(f"⚠️ Database initialization error: {e}")
+            print("📝 Note: Using temporary SQLite database in /tmp/")
+    
+    port = int(os.getenv('PORT', 5000))
+    debug = os.getenv('FLASK_ENV') != 'production'
+    print(f"🚀 Starting CodeAtlas backend on port {port}")
+    app.run(host="0.0.0.0", port=port, debug=debug)
