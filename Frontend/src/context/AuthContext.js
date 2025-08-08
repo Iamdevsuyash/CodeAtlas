@@ -1,5 +1,6 @@
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { getApiUrl, defaultFetchOptions } from '../config/api';
 
 const AuthContext = createContext(null);
 
@@ -10,8 +11,7 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         const checkStatus = async () => {
             try {
-                const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-                const response = await fetch(`${apiUrl}/api/status`, { credentials: 'include' });
+                const response = await fetch(getApiUrl('/api/status'), defaultFetchOptions);
                 if (response.ok) {
                     const data = await response.json();
                     if (data.logged_in) {
@@ -32,8 +32,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const logout = async () => {
-        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-        await fetch(`${apiUrl}/api/logout`, { method: 'POST', credentials: 'include' });
+        await fetch(getApiUrl('/api/logout'), { ...defaultFetchOptions, method: 'POST' });
         setUser(null);
     };
 
