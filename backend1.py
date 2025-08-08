@@ -24,11 +24,11 @@ os.makedirs(app.instance_path, exist_ok=True)
 # Ensure tmp directory exists for SQLite in production
 os.makedirs('/tmp', exist_ok=True)
 
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(24))
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(32))
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', f"sqlite:///tmp/ideas.db")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-CORS(app, supports_credentials=True, resources={r"/api/*": {"origins": os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://localhost:3001,https://gitatlas.netlify.app/').split(',')}})
+CORS(app, supports_credentials=True, resources={r"/api/*": {"origins": os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://localhost:3001,https://gitatlas.netlify.app').split(',')}})
 
 
 login_manager = LoginManager()

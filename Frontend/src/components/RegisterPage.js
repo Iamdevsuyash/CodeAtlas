@@ -12,7 +12,8 @@ const RegisterPage = ({ onSwitchToLogin }) => {
         setError('');
         setMessage('');
         try {
-            const response = await fetch('http://localhost:5000/api/register', {
+            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+            const response = await fetch(`${apiUrl}/api/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password }),
