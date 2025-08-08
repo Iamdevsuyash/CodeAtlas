@@ -3,6 +3,7 @@ requests
 python-dotenv
 markdown
 google-generativeai
+psycopg2-binary
 flask-cors
 flask-sqlalchemy
 werkzeug

@@ -40,6 +40,28 @@ CORS(app,
 login_manager = LoginManager()
 login_manager.init_app(app)
 
+# Initialize database tables on app startup (critical for production)
+def init_database():
+    """Initialize database tables if they don't exist"""
+    try:
+        with app.app_context():
+            db.create_all()
+            print("✅ Database tables created/verified successfully")
+            
+            # Verify tables exist by checking User table
+            from sqlalchemy import inspect
+            inspector = inspect(db.engine)
+            tables = inspector.get_table_names()
+            print(f"📊 Available tables: {tables}")
+            
+            return True
+    except Exception as e:
+        print(f"❌ Database initialization failed: {e}")
+        return False
+
+# Call database initialization immediately
+init_database()
+
 # Additional CORS headers for reliable cross-origin support
 @app.after_request
 def after_request(response):

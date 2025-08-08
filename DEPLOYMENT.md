@@ -67,7 +67,7 @@ DATABASE_URL=postgresql://user:password@host:port/dbname
 ### 2.3 Add PostgreSQL Database
 1. In Render dashboard → "New" → "PostgreSQL"
 2. Name: `codeatlas-db`
-3. Copy the connection string to `DATABASE_URL` in backend environment
+3. Copy the **internal** connection string to `DATABASE_URL` in the backend environment variables. Using the internal URL is more secure and performant as the services are on the same private network.
 
 ## 🔄 Step 3: Deploy Gun.js Server to Render
 
