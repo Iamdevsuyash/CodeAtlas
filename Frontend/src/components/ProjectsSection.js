@@ -68,7 +68,7 @@ const ProjectsSection = () => {
       chatRef.current = chatRoom;
       
       // Listen for new messages
-      const messageListener = chatRoom.map().on((message, key) => {
+      chatRoom.map().on((message, key) => {
         console.log('Received message:', message, 'with key:', key);
         if (message && message.text && message.author && message.timestamp) {
           setChatMessages(prev => {

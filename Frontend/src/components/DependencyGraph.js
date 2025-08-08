@@ -193,7 +193,7 @@ const DependencyGraph = ({ structureAnalysis, repoInfo, fileStructure }) => {
     }
 
     return { nodes, links };
-  }, []);
+  }, [fileStructure, repoInfo]);
 
   // Navigation helpers
   const updateBreadcrumbs = useCallback((path) => {
