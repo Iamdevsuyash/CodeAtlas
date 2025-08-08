@@ -25,7 +25,7 @@ app.config['SECRET_KEY'] = os.urandom(24)
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(app.instance_path, 'ideas.db')}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-CORS(app, supports_credentials=True, resources={r"/api/*": {"origins": "http://localhost:3000"}})
+CORS(app, supports_credentials=True, resources={r"/api/*": {"origins": ["http://localhost:3000","http://localhost:3001"]}})
 
 
 login_manager = LoginManager()
@@ -247,6 +247,7 @@ def analyze_repo_route():
         "readme_summary": readme_summary,
         "structure_analysis": structure_analysis,
         "setup_guide": setup_guide,
+        "file_structure": file_structure,
     })
 
 @app.route('/api/trending', methods=['GET'])
