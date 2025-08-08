@@ -7,22 +7,16 @@
   NODE_VERSION = "18"
   NPM_VERSION = "9"
 
-[[redirects]]
-  from = "/api/*"
-  to = "https://your-backend-app.onrender.com/api/:splat"
-  status = 200
-  force = true
-  headers = {X-From = "Netlify"}
-
+# SPA redirect for React Router
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
 [context.production.environment]
-  REACT_APP_API_URL = "https://your-backend-app.onrender.com"
-  REACT_APP_GUN_URL = "https://your-gunjs-app.onrender.com"
+  REACT_APP_API_URL = "https://codeatlas1.onrender.com"
+  REACT_APP_GUN_URL = "https://codeatlas-gunjs.onrender.com"
 
 [context.deploy-preview.environment]
-  REACT_APP_API_URL = "https://your-backend-app.onrender.com"
-  REACT_APP_GUN_URL = "https://your-gunjs-app.onrender.com"
+  REACT_APP_API_URL = "https://codeatlas1.onrender.com"
+  REACT_APP_GUN_URL = "https://codeatlas-gunjs.onrender.com"
