@@ -33,10 +33,10 @@ if database_url and database_url.startswith('postgres://'):
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url or f"sqlite:///tmp/ideas.db"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-# More permissive CORS configuration for debugging
+# CORS configuration with explicit origins for credentialed requests
 CORS(app, 
      supports_credentials=True,
-     origins='*',
+     origins=['http://localhost:3000', 'http://localhost:3001', 'https://gitatlas.netlify.app'],
      methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
      allow_headers=['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
      expose_headers=['Content-Type', 'Authorization'])
