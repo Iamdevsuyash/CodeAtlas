@@ -37,12 +37,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = database_url or f"sqlite:///tmp/ideas.db
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 # CORS configuration with explicit origins for credentialed requests
-CORS(app, 
-     supports_credentials=True,
-     origins=['http://localhost:3000', 'http://localhost:3001', 'https://gitatlas.netlify.app'],
-     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-     allow_headers=['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-     expose_headers=['Content-Type', 'Authorization'])
+CORS(app, supports_credentials=True, origins=["https://gitatlas.netlify.app"])
 
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config['SESSION_COOKIE_SECURE'] = True  # Required for cross-site cookies over HTTPS
