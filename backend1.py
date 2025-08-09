@@ -27,6 +27,8 @@ os.makedirs('/tmp', exist_ok=True)
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(32))
 # Use PostgreSQL in production, SQLite as local fallback
+
+
 database_url = os.getenv('DATABASE_URL')
 if database_url and database_url.startswith('postgres://'):
     # Fix for newer SQLAlchemy versions that require postgresql:// instead of postgres://
@@ -82,7 +84,7 @@ def handle_500_error(e):
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128))
+    password_hash = db.Column(db.Text)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
