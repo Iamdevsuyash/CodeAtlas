@@ -1,20 +1,27 @@
-const Gun = require('gun');
-const express = require('express');
-const cors = require('cors');
-const http = require('http');
+const Gun = require("gun");
+const express = require("express");
+const cors = require("cors");
+const http = require("http");
 
 const app = express();
 const port = process.env.PORT || 8765;
 
 // Enable CORS for all routes
-const allowedOrigins = process.env.CORS_ORIGINS 
-  ? process.env.CORS_ORIGINS.split(',')
-  : ['http://localhost:3000', 'http://localhost:3001'];
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(",")
+  : [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "https://codeatlas1.onrender.com",
+      "https://gitatlas.netlify.app/",
+    ];
 
-app.use(cors({
-  origin: allowedOrigins,
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  })
+);
 
 // Create HTTP server
 const server = http.createServer(app);
@@ -22,18 +29,18 @@ const server = http.createServer(app);
 // Create Gun instance with proper WebSocket support
 const gun = Gun({
   web: server,
-  file: 'gun-data'
+  file: "gun-data",
 });
 
 // Serve Gun.js client library
 app.use(Gun.serve);
 
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    message: 'Gun.js server is running',
-    timestamp: new Date().toISOString()
+app.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    message: "Gun.js server is running",
+    timestamp: new Date().toISOString(),
   });
 });
 
@@ -46,18 +53,18 @@ server.listen(port, () => {
 });
 
 // Handle graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('🛑 Shutting down Gun.js server...');
+process.on("SIGTERM", () => {
+  console.log("🛑 Shutting down Gun.js server...");
   server.close(() => {
-    console.log('✅ Gun.js server closed');
+    console.log("✅ Gun.js server closed");
     process.exit(0);
   });
 });
 
-process.on('SIGINT', () => {
-  console.log('\n🛑 Shutting down Gun.js server...');
+process.on("SIGINT", () => {
+  console.log("\n🛑 Shutting down Gun.js server...");
   server.close(() => {
-    console.log('✅ Gun.js server closed');
+    console.log("✅ Gun.js server closed");
     process.exit(0);
   });
 });

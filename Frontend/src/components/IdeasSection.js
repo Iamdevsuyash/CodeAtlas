@@ -30,7 +30,7 @@ const IdeasSection = () => {
     console.log(
       "Fetching posts from https://codeatlas1.onrender.com/api/posts"
     );
-    fetch("https://codeatlas1.onrender.com/posts")
+    fetch("https://codeatlas1.onrender.com/api/posts")
       .then((res) => {
         console.log("Response status:", res.status);
         if (!res.ok) {
@@ -55,9 +55,9 @@ const IdeasSection = () => {
   const fetchDiscussions = () => {
     setDiscussionsLoading(true);
     console.log(
-      "Fetching discussions from https://codeatlas1.onrender.com/discussions"
+      "Fetching discussions from https://codeatlas1.onrender.com/api/discussions"
     );
-    fetch("https://codeatlas1.onrender.com/discussions")
+    fetch("https://codeatlas1.onrender.com/api/discussions")
       .then((res) => {
         console.log("Discussions response status:", res.status);
         if (!res.ok) {
@@ -87,7 +87,7 @@ const IdeasSection = () => {
   const handleIdeaFormSubmit = (e) => {
     e.preventDefault();
     setError(null);
-    fetch("https://codeatlas1.onrender.com/posts", {
+    fetch("https://codeatlas1.onrender.com/api/posts", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -113,7 +113,7 @@ const IdeasSection = () => {
   const handleDiscussionFormSubmit = (e) => {
     e.preventDefault();
     setDiscussionError(null);
-    fetch("http://localhost:3001/api/discussions", {
+    fetch("https://codeatlas1.onrender.com/api/discussions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -142,12 +142,15 @@ const IdeasSection = () => {
 
   // Handle discussion like
   const handleDiscussionLike = (discussionId) => {
-    fetch(`http://localhost:3001/api/discussions/${discussionId}/like`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    })
+    fetch(
+      `https://codeatlas1.onrender.com/api/discussions/${discussionId}/like`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    )
       .then((res) => res.json())
       .then((data) => {
         if (data.likes !== undefined) {
@@ -166,7 +169,9 @@ const IdeasSection = () => {
   // Fetch replies for a discussion
   const fetchDiscussionReplies = (discussionId) => {
     setDiscussionReplyLoading((prev) => ({ ...prev, [discussionId]: true }));
-    fetch(`http://localhost:3001/api/discussions/${discussionId}/replies`)
+    fetch(
+      `https://codeatlas1.onrender.com/api/discussions/${discussionId}/replies`
+    )
       .then((res) => res.json())
       .then((data) => {
         setDiscussionReplies((prev) => ({ ...prev, [discussionId]: data }));
@@ -203,14 +208,17 @@ const IdeasSection = () => {
   const handleDiscussionReplySubmit = (e, discussionId) => {
     e.preventDefault();
     setDiscussionReplyError((prev) => ({ ...prev, [discussionId]: null }));
-    fetch(`http://localhost:3001/api/discussions/${discussionId}/replies`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        author: "Anonymous",
-        content: discussionReplyInputs[discussionId],
-      }),
-    })
+    fetch(
+      `https://codeatlas1.onrender.com/api/discussions/${discussionId}/replies`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          author: "Anonymous",
+          content: discussionReplyInputs[discussionId],
+        }),
+      }
+    )
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) {
