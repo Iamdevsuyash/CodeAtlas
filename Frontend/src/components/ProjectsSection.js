@@ -33,7 +33,7 @@ const ProjectsSection = () => {
   // Initialize Gun.js
   useEffect(() => {
     gunRef.current = Gun({
-      peers: ["https://codeatlas-gunjs.onrender.com/gun"],
+      peers: ["https://codeatlas-gunjs.onrender.com"],
       localStorage: false,
       radisk: false,
     });

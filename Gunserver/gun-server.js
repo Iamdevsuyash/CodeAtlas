@@ -5,6 +5,7 @@ const http = require("http");
 
 const app = express();
 const port = process.env.PORT || 8765;
+console.log(`🔧 Using port: ${port} (from ${process.env.PORT ? 'environment' : 'default'})`);
 
 // Enable CORS for all routes
 const allowedOrigins = process.env.CORS_ORIGINS

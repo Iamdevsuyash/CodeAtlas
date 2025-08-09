@@ -32,8 +32,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 8765
+      - key: CORS_ORIGINS
+        value: "https://your-netlify-app.netlify.app,https://gitatlas.netlify.app"
 
 databases:
   - name: codeatlas-db

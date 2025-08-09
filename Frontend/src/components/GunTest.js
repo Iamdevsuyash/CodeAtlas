@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import Gun from "gun";
+import { getGunUrl } from '../config/api';
 
 const GunTest = () => {
   const [messages, setMessages] = useState([]);
@@ -7,9 +8,12 @@ const GunTest = () => {
   const gunRef = useRef(null);
 
   useEffect(() => {
-    // Initialize Gun
+    // Initialize Gun with dynamic URL
+    const gunUrl = getGunUrl();
+    console.log('Connecting to Gun.js server:', gunUrl);
+    
     gunRef.current = Gun({
-      peers: ["https://codeatlas-gunjs.onrender.com/gun"],
+      peers: [gunUrl],
       localStorage: false,
       radisk: false,
     });
