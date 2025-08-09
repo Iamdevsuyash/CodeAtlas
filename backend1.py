@@ -38,12 +38,14 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 # CORS configuration with explicit origins for credentialed requests
 CORS(app, 
-     supports_credentials=True,
+     supports_credentials=True
      origins=['http://localhost:3000', 'http://localhost:3001', 'https://gitatlas.netlify.app'],
      methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
      allow_headers=['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
      expose_headers=['Content-Type', 'Authorization'])
 
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_SECURE'] = True  # Required for cross-site cookies over HTTPS
 
 login_manager = LoginManager()
 login_manager.init_app(app)
