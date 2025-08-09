@@ -33,12 +33,12 @@ if database_url and database_url.startswith('postgres://'):
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url or f"sqlite:///tmp/ideas.db"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-# Simplified CORS configuration for reliable cross-origin requests
+# More permissive CORS configuration for debugging
 CORS(app, 
      supports_credentials=True,
-     origins=['http://localhost:3000', 'http://localhost:3001', 'https://gitatlas.netlify.app'],
+     origins='*',
      methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-     allow_headers=['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+     allow_headers=['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
      expose_headers=['Content-Type', 'Authorization'])
 
 
@@ -67,16 +67,7 @@ def init_database():
 # Call database initialization immediately
 init_database()
 
-# Additional CORS headers for reliable cross-origin support
-@app.after_request
-def after_request(response):
-    origin = request.headers.get('Origin')
-    if origin in ['http://localhost:3000', 'http://localhost:3001', 'https://gitatlas.netlify.app']:
-        response.headers.add('Access-Control-Allow-Origin', origin)
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-        response.headers.add('Access-Control-Allow-Credentials', 'true')
-    return response
+# CORS is handled by flask-cors configuration above
 
 
 # --- Database Models ---
