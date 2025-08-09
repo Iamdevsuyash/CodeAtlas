@@ -8,6 +8,7 @@ from flask import Flask, request, jsonify, session, make_response
 from flask_cors import CORS
 from dotenv import load_dotenv
 from markdown import markdown
+import traceback
 from datetime import datetime, timedelta
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -208,9 +209,9 @@ def register():
         db.session.commit()
         return jsonify({"message": "User registered successfully"}), 201
     except Exception as e:
-        db.session.rollback()
-        print(f"Register error: {e}")
-        return jsonify({"error": "Registration failed"}), 500
+        print("Registration error:", e)
+        traceback.print_exc()  # 🔹 Full error in Render logs
+        return jsonify({'error': 'Registration failed', 'details': str(e)}), 500
 
 @app.route('/api/login', methods=['POST'])
 def login():
