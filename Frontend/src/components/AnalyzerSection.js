@@ -38,7 +38,7 @@ const AnalyzerSection = () => {
     const info = extractRepoInfo(repoUrl);
     setRepoInfo(info);
 
-    fetch("https://codeatlas1.onrender.com//api/analyze", {
+    fetch("https://codeatlas1.onrender.com/api/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ repo_url: repoUrl }),
