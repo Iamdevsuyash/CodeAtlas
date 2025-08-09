@@ -9,12 +9,7 @@ const port = process.env.PORT || 8765;
 // Enable CORS for all routes
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",")
-  : [
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "https://codeatlas1.onrender.com",
-      "https://gitatlas.netlify.app/",
-    ];
+  : ["https://gitatlas.netlify.app/"];
 
 app.use(
   cors({
@@ -48,7 +43,6 @@ app.get("/health", (req, res) => {
 server.listen(port, () => {
   console.log(`🔫 Gun.js server running on http://localhost:${port}`);
   console.log(`📡 Real-time collaboration backend ready!`);
-  console.log(`🌐 CORS enabled for frontend at http://localhost:3000`);
   console.log(`🔌 WebSocket support enabled for real-time sync`);
 });
 
