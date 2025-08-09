@@ -36,7 +36,7 @@ db = SQLAlchemy(app)
 # Simplified CORS configuration for reliable cross-origin requests
 CORS(app, 
      supports_credentials=True,
-     origins="*",
+     origins=['http://localhost:3000', 'http://localhost:3001', 'https://gitatlas.netlify.app'],
      methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
      allow_headers=['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
      expose_headers=['Content-Type', 'Authorization'])
@@ -71,7 +71,7 @@ init_database()
 @app.after_request
 def after_request(response):
     origin = request.headers.get('Origin')
-    if origin in ['*']:
+    if origin in ['http://localhost:3000', 'http://localhost:3001', 'https://gitatlas.netlify.app']:
         response.headers.add('Access-Control-Allow-Origin', origin)
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept')
         response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
