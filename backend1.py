@@ -25,13 +25,18 @@ os.makedirs(app.instance_path, exist_ok=True)
 os.makedirs('/tmp', exist_ok=True)
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(32))
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', f"sqlite:///tmp/ideas.db")
+# Use PostgreSQL in production, SQLite as local fallback
+database_url = os.getenv('DATABASE_URL')
+if database_url and database_url.startswith('postgres://'):
+    # Fix for newer SQLAlchemy versions that require postgresql:// instead of postgres://
+    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url or f"sqlite:///tmp/ideas.db"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 # Simplified CORS configuration for reliable cross-origin requests
 CORS(app, 
      supports_credentials=True,
-     origins=['http://localhost:3000', 'http://localhost:3001', 'https://gitatlas.netlify.app'],
+     origins=['https://gitatlas.netlify.app'],
      methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
      allow_headers=['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
      expose_headers=['Content-Type', 'Authorization'])
@@ -66,7 +71,7 @@ init_database()
 @app.after_request
 def after_request(response):
     origin = request.headers.get('Origin')
-    if origin in ['http://localhost:3000', 'http://localhost:3001', 'https://gitatlas.netlify.app']:
+    if origin in ['https://gitatlas.netlify.app']:
         response.headers.add('Access-Control-Allow-Origin', origin)
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept')
         response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
