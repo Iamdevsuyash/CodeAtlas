@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import DependencyGraph from './DependencyGraph';
+import DependencyGraph from "./DependencyGraph";
 
 const AnalyzerSection = () => {
   const [repoUrl, setRepoUrl] = useState("");
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState("overview");
   const [repoInfo, setRepoInfo] = useState(null);
   const [animateCards, setAnimateCards] = useState(false);
 
@@ -23,7 +23,7 @@ const AnalyzerSection = () => {
       return {
         owner: match[1],
         name: match[2],
-        fullName: `${match[1]}/${match[2]}`
+        fullName: `${match[1]}/${match[2]}`,
       };
     }
     return null;
@@ -34,11 +34,11 @@ const AnalyzerSection = () => {
     setLoading(true);
     setError(null);
     setAnalysis(null);
-    
+
     const info = extractRepoInfo(repoUrl);
     setRepoInfo(info);
 
-    fetch("http://localhost:5000/api/analyze", {
+    fetch("https://codeatlas1.onrender.com//api/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ repo_url: repoUrl }),
@@ -70,72 +70,79 @@ const AnalyzerSection = () => {
 
   const parseStructureAnalysis = (htmlContent) => {
     if (!htmlContent) return null;
-    
+
     // Extract key metrics from the HTML content
-    const tempDiv = document.createElement('div');
+    const tempDiv = document.createElement("div");
     tempDiv.innerHTML = htmlContent;
-    const text = tempDiv.textContent || tempDiv.innerText || '';
-    
+    const text = tempDiv.textContent || tempDiv.innerText || "";
+
     // Simple parsing to extract metrics
-    const lines = text.split('\n').filter(line => line.trim());
+    const lines = text.split("\n").filter((line) => line.trim());
     const metrics = {
       totalFiles: 0,
       languages: [],
       directories: [],
-      keyFiles: []
+      keyFiles: [],
     };
-    
-    lines.forEach(line => {
-      if (line.includes('files') || line.includes('Files')) {
+
+    lines.forEach((line) => {
+      if (line.includes("files") || line.includes("Files")) {
         const match = line.match(/(\d+)/);
         if (match) metrics.totalFiles = parseInt(match[1]);
       }
-      if (line.includes('.js') || line.includes('.py') || line.includes('.java') || line.includes('.cpp')) {
+      if (
+        line.includes(".js") ||
+        line.includes(".py") ||
+        line.includes(".java") ||
+        line.includes(".cpp")
+      ) {
         const lang = line.match(/\.(\w+)/);
         if (lang && !metrics.languages.includes(lang[1])) {
           metrics.languages.push(lang[1]);
         }
       }
     });
-    
+
     return metrics;
   };
 
   const renderOverviewTab = () => {
     if (!analysis) return null;
-    
+
     const metrics = parseStructureAnalysis(analysis.structure_analysis);
-    
+
     return (
       <div className="overview-grid">
-        <div className={`metric-card ${animateCards ? 'animate' : ''}`}>
+        <div className={`metric-card ${animateCards ? "animate" : ""}`}>
           <div className="metric-icon">📊</div>
           <div className="metric-content">
             <h3>Repository Analysis</h3>
-            <div className="metric-value">{repoInfo?.name || 'Repository'}</div>
+            <div className="metric-value">{repoInfo?.name || "Repository"}</div>
             <div className="metric-label">Successfully Analyzed</div>
           </div>
         </div>
-        
-        <div className={`metric-card ${animateCards ? 'animate' : ''}`}>
+
+        <div className={`metric-card ${animateCards ? "animate" : ""}`}>
           <div className="metric-icon">📁</div>
           <div className="metric-content">
             <h3>Total Files</h3>
-            <div className="metric-value">{metrics?.totalFiles || 'N/A'}</div>
+            <div className="metric-value">{metrics?.totalFiles || "N/A"}</div>
             <div className="metric-label">Files Detected</div>
           </div>
         </div>
-        
-        <div className={`metric-card ${animateCards ? 'animate' : ''}`}>
+
+        <div className={`metric-card ${animateCards ? "animate" : ""}`}>
           <div className="metric-icon">💻</div>
           <div className="metric-content">
             <h3>Languages</h3>
-            <div className="metric-value">{metrics?.languages?.length || 0}</div>
+            <div className="metric-value">
+              {metrics?.languages?.length || 0}
+            </div>
             <div className="metric-label">Programming Languages</div>
           </div>
         </div>
-        
-        <div className={`metric-card ${animateCards ? 'animate' : ''}`}>
+
+        <div className={`metric-card ${animateCards ? "animate" : ""}`}>
           <div className="metric-icon">⚡</div>
           <div className="metric-content">
             <h3>Analysis Status</h3>
@@ -143,7 +150,7 @@ const AnalyzerSection = () => {
             <div className="metric-label">Ready for Review</div>
           </div>
         </div>
-        
+
         <div className="summary-card">
           <div className="summary-header">
             <h3>🔍 Quick Insights</h3>
@@ -151,7 +158,9 @@ const AnalyzerSection = () => {
           <div className="summary-content">
             <div className="insight-item">
               <span className="insight-icon">🎯</span>
-              <span>Repository: <strong>{repoInfo?.fullName}</strong></span>
+              <span>
+                Repository: <strong>{repoInfo?.fullName}</strong>
+              </span>
             </div>
             <div className="insight-item">
               <span className="insight-icon">🏗️</span>
@@ -172,8 +181,9 @@ const AnalyzerSection = () => {
   };
 
   const renderReadmeTab = () => {
-    if (!analysis?.readme_summary) return <div className="no-data">No README analysis available</div>;
-    
+    if (!analysis?.readme_summary)
+      return <div className="no-data">No README analysis available</div>;
+
     return (
       <div className="content-tab">
         <div className="content-header">
@@ -184,7 +194,7 @@ const AnalyzerSection = () => {
           </div>
         </div>
         <div className="content-body">
-          <div 
+          <div
             className="formatted-content"
             dangerouslySetInnerHTML={{ __html: analysis.readme_summary }}
           />
@@ -194,19 +204,22 @@ const AnalyzerSection = () => {
   };
 
   const renderStructureTab = () => {
-    if (!analysis?.structure_analysis) return <div className="no-data">No structure analysis available</div>;
-    
+    if (!analysis?.structure_analysis)
+      return <div className="no-data">No structure analysis available</div>;
+
     return (
       <div className="content-tab">
         <div className="content-header">
           <div className="content-icon">🏗️</div>
           <div>
             <h3>Repository Structure</h3>
-            <p>Detailed analysis of the codebase organization and architecture</p>
+            <p>
+              Detailed analysis of the codebase organization and architecture
+            </p>
           </div>
         </div>
         <div className="content-body">
-          <div 
+          <div
             className="formatted-content"
             dangerouslySetInnerHTML={{ __html: analysis.structure_analysis }}
           />
@@ -216,19 +229,22 @@ const AnalyzerSection = () => {
   };
 
   const renderSetupTab = () => {
-    if (!analysis?.setup_guide) return <div className="no-data">No setup guide available</div>;
-    
+    if (!analysis?.setup_guide)
+      return <div className="no-data">No setup guide available</div>;
+
     return (
       <div className="content-tab">
         <div className="content-header">
           <div className="content-icon">⚙️</div>
           <div>
             <h3>Setup Guide</h3>
-            <p>Step-by-step instructions to get the repository running locally</p>
+            <p>
+              Step-by-step instructions to get the repository running locally
+            </p>
           </div>
         </div>
         <div className="content-body">
-          <div 
+          <div
             className="formatted-content"
             dangerouslySetInnerHTML={{ __html: analysis.setup_guide }}
           />
@@ -238,10 +254,15 @@ const AnalyzerSection = () => {
   };
 
   const renderGraphTab = () => {
-    if (!analysis?.structure_analysis) return <div className="no-data">No structure analysis available for graph visualization</div>;
-    
+    if (!analysis?.structure_analysis)
+      return (
+        <div className="no-data">
+          No structure analysis available for graph visualization
+        </div>
+      );
+
     return (
-      <DependencyGraph 
+      <DependencyGraph
         structureAnalysis={analysis.structure_analysis}
         repoInfo={repoInfo}
         fileStructure={analysis.file_structure}
@@ -256,7 +277,9 @@ const AnalyzerSection = () => {
           <div className="header-icon">🔬</div>
           <div>
             <h1>Repository Analyzer</h1>
-            <p>AI-powered analysis of GitHub repositories with detailed insights</p>
+            <p>
+              AI-powered analysis of GitHub repositories with detailed insights
+            </p>
           </div>
         </div>
       </div>
@@ -310,7 +333,10 @@ const AnalyzerSection = () => {
           </div>
           <div className="loading-content">
             <h4>Analyzing Repository</h4>
-            <p>Please wait while we analyze the repository structure and generate insights...</p>
+            <p>
+              Please wait while we analyze the repository structure and generate
+              insights...
+            </p>
           </div>
         </div>
       )}
@@ -318,37 +344,41 @@ const AnalyzerSection = () => {
       {analysis && (
         <div className="analysis-container">
           <div className="analysis-tabs">
-            <button 
-              className={`tab-button ${activeTab === 'overview' ? 'active' : ''}`}
-              onClick={() => setActiveTab('overview')}
+            <button
+              className={`tab-button ${
+                activeTab === "overview" ? "active" : ""
+              }`}
+              onClick={() => setActiveTab("overview")}
             >
               <span className="tab-icon">📊</span>
               Overview
             </button>
-            <button 
-              className={`tab-button ${activeTab === 'readme' ? 'active' : ''}`}
-              onClick={() => setActiveTab('readme')}
+            <button
+              className={`tab-button ${activeTab === "readme" ? "active" : ""}`}
+              onClick={() => setActiveTab("readme")}
             >
               <span className="tab-icon">📖</span>
               README
             </button>
-            <button 
-              className={`tab-button ${activeTab === 'structure' ? 'active' : ''}`}
-              onClick={() => setActiveTab('structure')}
+            <button
+              className={`tab-button ${
+                activeTab === "structure" ? "active" : ""
+              }`}
+              onClick={() => setActiveTab("structure")}
             >
               <span className="tab-icon">🏗️</span>
               Structure
             </button>
-            <button 
-              className={`tab-button ${activeTab === 'setup' ? 'active' : ''}`}
-              onClick={() => setActiveTab('setup')}
+            <button
+              className={`tab-button ${activeTab === "setup" ? "active" : ""}`}
+              onClick={() => setActiveTab("setup")}
             >
               <span className="tab-icon">⚙️</span>
               Setup
             </button>
-            <button 
-              className={`tab-button ${activeTab === 'graph' ? 'active' : ''}`}
-              onClick={() => setActiveTab('graph')}
+            <button
+              className={`tab-button ${activeTab === "graph" ? "active" : ""}`}
+              onClick={() => setActiveTab("graph")}
             >
               <span className="tab-icon">🕸️</span>
               Graph
@@ -356,11 +386,11 @@ const AnalyzerSection = () => {
           </div>
 
           <div className="tab-content">
-            {activeTab === 'overview' && renderOverviewTab()}
-            {activeTab === 'readme' && renderReadmeTab()}
-            {activeTab === 'structure' && renderStructureTab()}
-            {activeTab === 'setup' && renderSetupTab()}
-            {activeTab === 'graph' && renderGraphTab()}
+            {activeTab === "overview" && renderOverviewTab()}
+            {activeTab === "readme" && renderReadmeTab()}
+            {activeTab === "structure" && renderStructureTab()}
+            {activeTab === "setup" && renderSetupTab()}
+            {activeTab === "graph" && renderGraphTab()}
           </div>
         </div>
       )}
@@ -369,7 +399,10 @@ const AnalyzerSection = () => {
         <div className="welcome-state">
           <div className="welcome-icon">🚀</div>
           <h3>Ready to Analyze</h3>
-          <p>Enter a GitHub repository URL above to get started with AI-powered analysis</p>
+          <p>
+            Enter a GitHub repository URL above to get started with AI-powered
+            analysis
+          </p>
           <div className="feature-list">
             <div className="feature-item">
               <span className="feature-icon">📖</span>

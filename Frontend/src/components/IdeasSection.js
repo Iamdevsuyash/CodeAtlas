@@ -17,7 +17,7 @@ const IdeasSection = () => {
   const [commentLoading, setCommentLoading] = useState({}); // { [postId]: true/false }
   const [commentError, setCommentError] = useState({}); // { [postId]: errorMsg }
   const [activeTab, setActiveTab] = useState("ideas"); // "ideas" or "discussions"
-  
+
   // Discussion-specific states
   const [discussionReplies, setDiscussionReplies] = useState({}); // { [discussionId]: [replies] }
   const [discussionReplyInputs, setDiscussionReplyInputs] = useState({}); // { [discussionId]: text }
@@ -27,8 +27,10 @@ const IdeasSection = () => {
 
   const fetchPosts = () => {
     setLoading(true);
-    console.log("Fetching posts from http://localhost:5000/api/posts");
-    fetch("http://localhost:5000/api/posts")
+    console.log(
+      "Fetching posts from https://codeatlas1.onrender.com/api/posts"
+    );
+    fetch("https://codeatlas1.onrender.com/posts")
       .then((res) => {
         console.log("Response status:", res.status);
         if (!res.ok) {
@@ -43,15 +45,19 @@ const IdeasSection = () => {
       })
       .catch((error) => {
         console.error("Error fetching posts:", error);
-        setError("Failed to load posts. Please check if the backend server is running.");
+        setError(
+          "Failed to load posts. Please check if the backend server is running."
+        );
         setLoading(false);
       });
   };
 
   const fetchDiscussions = () => {
     setDiscussionsLoading(true);
-    console.log("Fetching discussions from http://localhost:3001/api/discussions");
-    fetch("http://localhost:3001/api/discussions")
+    console.log(
+      "Fetching discussions from https://codeatlas1.onrender.com/discussions"
+    );
+    fetch("https://codeatlas1.onrender.com/discussions")
       .then((res) => {
         console.log("Discussions response status:", res.status);
         if (!res.ok) {
@@ -66,7 +72,9 @@ const IdeasSection = () => {
       })
       .catch((error) => {
         console.error("Error fetching discussions:", error);
-        setDiscussionError("Failed to load discussions. Please check if the discussions server is running.");
+        setDiscussionError(
+          "Failed to load discussions. Please check if the discussions server is running."
+        );
         setDiscussionsLoading(false);
       });
   };
@@ -79,7 +87,7 @@ const IdeasSection = () => {
   const handleIdeaFormSubmit = (e) => {
     e.preventDefault();
     setError(null);
-    fetch("http://localhost:5000/api/posts", {
+    fetch("https://codeatlas1.onrender.com/posts", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -110,11 +118,11 @@ const IdeasSection = () => {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ 
-        author: "Anonymous", 
-        title: discussionTitle, 
+      body: JSON.stringify({
+        author: "Anonymous",
+        title: discussionTitle,
         content: discussionContent,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       }),
     })
       .then(async (res) => {
@@ -143,8 +151,8 @@ const IdeasSection = () => {
       .then((res) => res.json())
       .then((data) => {
         if (data.likes !== undefined) {
-          setDiscussions(prev => 
-            prev.map(d => 
+          setDiscussions((prev) =>
+            prev.map((d) =>
               d.id === discussionId ? { ...d, likes: data.likes } : d
             )
           );
@@ -162,10 +170,16 @@ const IdeasSection = () => {
       .then((res) => res.json())
       .then((data) => {
         setDiscussionReplies((prev) => ({ ...prev, [discussionId]: data }));
-        setDiscussionReplyLoading((prev) => ({ ...prev, [discussionId]: false }));
+        setDiscussionReplyLoading((prev) => ({
+          ...prev,
+          [discussionId]: false,
+        }));
       })
       .catch(() => {
-        setDiscussionReplyLoading((prev) => ({ ...prev, [discussionId]: false }));
+        setDiscussionReplyLoading((prev) => ({
+          ...prev,
+          [discussionId]: false,
+        }));
       });
   };
 
@@ -192,9 +206,9 @@ const IdeasSection = () => {
     fetch(`http://localhost:3001/api/discussions/${discussionId}/replies`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         author: "Anonymous",
-        content: discussionReplyInputs[discussionId] 
+        content: discussionReplyInputs[discussionId],
       }),
     })
       .then(async (res) => {
@@ -220,7 +234,7 @@ const IdeasSection = () => {
   // Fetch comments for a post
   const fetchComments = (postId) => {
     setCommentLoading((prev) => ({ ...prev, [postId]: true }));
-    fetch(`http://localhost:5000/api/posts/${postId}/comments`)
+    fetch(`https://codeatlas1.onrender.com/posts/${postId}/comments`)
       .then((res) => res.json())
       .then((data) => {
         setComments((prev) => ({ ...prev, [postId]: data }));
@@ -246,7 +260,7 @@ const IdeasSection = () => {
   const handleCommentSubmit = (e, postId) => {
     e.preventDefault();
     setCommentError((prev) => ({ ...prev, [postId]: null }));
-    fetch(`http://localhost:5000/api/posts/${postId}/comments`, {
+    fetch(`https://codeatlas1.onrender.com/posts/${postId}/comments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -287,7 +301,7 @@ const IdeasSection = () => {
               color: "white",
               border: "none",
               borderRadius: "5px",
-              cursor: "pointer"
+              cursor: "pointer",
             }}
           >
             💡 Ideas & Projects
@@ -301,7 +315,7 @@ const IdeasSection = () => {
               color: "white",
               border: "none",
               borderRadius: "5px",
-              cursor: "pointer"
+              cursor: "pointer",
             }}
           >
             💬 Community Discussions
@@ -312,7 +326,11 @@ const IdeasSection = () => {
           <>
             {error && (
               <div
-                style={{ color: "red", marginBottom: "10px", textAlign: "center" }}
+                style={{
+                  color: "red",
+                  marginBottom: "10px",
+                  textAlign: "center",
+                }}
               >
                 {error}
               </div>
@@ -348,7 +366,10 @@ const IdeasSection = () => {
                   <div className="thread-post" key={post.id}>
                     <div className="post-header">
                       <div className="post-header-left">
-                        <div className="avatar" style={{ background: "#3c3c3c" }}>
+                        <div
+                          className="avatar"
+                          style={{ background: "#3c3c3c" }}
+                        >
                           💡
                         </div>
                         <div>
@@ -403,7 +424,8 @@ const IdeasSection = () => {
                           </div>
                         ) : (
                           <>
-                            {comments[post.id] && comments[post.id].length > 0 ? (
+                            {comments[post.id] &&
+                            comments[post.id].length > 0 ? (
                               comments[post.id].map((c) => (
                                 <div
                                   key={c.id}
@@ -412,7 +434,9 @@ const IdeasSection = () => {
                                     padding: "6px 0",
                                   }}
                                 >
-                                  <span style={{ color: "#a0a0a0", fontSize: 12 }}>
+                                  <span
+                                    style={{ color: "#a0a0a0", fontSize: 12 }}
+                                  >
                                     {c.text}
                                   </span>
                                   <span
@@ -462,7 +486,11 @@ const IdeasSection = () => {
                             </form>
                             {commentError[post.id] && (
                               <div
-                                style={{ color: "red", fontSize: 12, marginTop: 4 }}
+                                style={{
+                                  color: "red",
+                                  fontSize: 12,
+                                  marginTop: 4,
+                                }}
                               >
                                 {commentError[post.id]}
                               </div>
@@ -522,7 +550,11 @@ const IdeasSection = () => {
           <>
             {discussionError && (
               <div
-                style={{ color: "red", marginBottom: "10px", textAlign: "center" }}
+                style={{
+                  color: "red",
+                  marginBottom: "10px",
+                  textAlign: "center",
+                }}
               >
                 {discussionError}
               </div>
@@ -538,7 +570,10 @@ const IdeasSection = () => {
                   <div className="thread-post" key={discussion.id}>
                     <div className="post-header">
                       <div className="post-header-left">
-                        <div className="avatar" style={{ background: "#4a90e2" }}>
+                        <div
+                          className="avatar"
+                          style={{ background: "#4a90e2" }}
+                        >
                           💬
                         </div>
                         <div>
@@ -552,7 +587,8 @@ const IdeasSection = () => {
                             <div className="username">{discussion.author}</div>
                           </div>
                           <div className="post-meta">
-                            Posted on {new Date(discussion.timestamp).toLocaleString()}
+                            Posted on{" "}
+                            {new Date(discussion.timestamp).toLocaleString()}
                           </div>
                         </div>
                       </div>
@@ -567,8 +603,8 @@ const IdeasSection = () => {
                     </div>
                     <div className="post-actions">
                       <div className="action-left">
-                        <button 
-                          className="action-btn" 
+                        <button
+                          className="action-btn"
                           type="button"
                           onClick={() => handleDiscussionLike(discussion.id)}
                           style={{ marginRight: "10px" }}
@@ -579,15 +615,17 @@ const IdeasSection = () => {
                             viewBox="0 0 16 16"
                             fill="currentColor"
                           >
-                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+                            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
                           </svg>
                           Like ({discussion.likes})
                         </button>
                         <button
                           className="action-btn"
                           type="button"
-                          onClick={() => handleDiscussionReplyClick(discussion.id)}
+                          onClick={() =>
+                            handleDiscussionReplyClick(discussion.id)
+                          }
                         >
                           <svg
                             width="12"
@@ -597,7 +635,8 @@ const IdeasSection = () => {
                           >
                             <path d="M1 11.5a.5.5 0 0 0 .5.5h11.793l-3.147 3.146a.5.5 0 0 0 .708.708l4-4a.5.5 0 0 0 0-.708l-4-4a.5.5 0 0 0-.708.708L13.293 11H1.5a.5.5 0 0 0-.5.5z" />
                           </svg>
-                          Reply ({discussion.replies ? discussion.replies.length : 0})
+                          Reply (
+                          {discussion.replies ? discussion.replies.length : 0})
                         </button>
                       </div>
                     </div>
@@ -617,7 +656,8 @@ const IdeasSection = () => {
                           </div>
                         ) : (
                           <>
-                            {discussionReplies[discussion.id] && discussionReplies[discussion.id].length > 0 ? (
+                            {discussionReplies[discussion.id] &&
+                            discussionReplies[discussion.id].length > 0 ? (
                               discussionReplies[discussion.id].map((reply) => (
                                 <div
                                   key={reply.id}
@@ -626,9 +666,18 @@ const IdeasSection = () => {
                                     padding: "6px 0",
                                   }}
                                 >
-                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                    <span style={{ color: "#a0a0a0", fontSize: 12 }}>
-                                      <strong>{reply.author}</strong>: {reply.content}
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      alignItems: "center",
+                                    }}
+                                  >
+                                    <span
+                                      style={{ color: "#a0a0a0", fontSize: 12 }}
+                                    >
+                                      <strong>{reply.author}</strong>:{" "}
+                                      {reply.content}
                                     </span>
                                     <span
                                       style={{
@@ -636,7 +685,9 @@ const IdeasSection = () => {
                                         fontSize: 11,
                                       }}
                                     >
-                                      {new Date(reply.timestamp).toLocaleString()}
+                                      {new Date(
+                                        reply.timestamp
+                                      ).toLocaleString()}
                                     </span>
                                   </div>
                                 </div>
@@ -645,15 +696,22 @@ const IdeasSection = () => {
                               <div className="empty-state">No replies yet.</div>
                             )}
                             <form
-                              onSubmit={(e) => handleDiscussionReplySubmit(e, discussion.id)}
+                              onSubmit={(e) =>
+                                handleDiscussionReplySubmit(e, discussion.id)
+                              }
                               style={{ marginTop: 10, display: "flex", gap: 8 }}
                             >
                               <input
                                 type="text"
                                 placeholder="Write a reply..."
-                                value={discussionReplyInputs[discussion.id] || ""}
+                                value={
+                                  discussionReplyInputs[discussion.id] || ""
+                                }
                                 onChange={(e) =>
-                                  handleDiscussionReplyInput(discussion.id, e.target.value)
+                                  handleDiscussionReplyInput(
+                                    discussion.id,
+                                    e.target.value
+                                  )
                                 }
                                 style={{
                                   flex: 1,
@@ -677,7 +735,11 @@ const IdeasSection = () => {
                             </form>
                             {discussionReplyError[discussion.id] && (
                               <div
-                                style={{ color: "red", fontSize: 12, marginTop: 4 }}
+                                style={{
+                                  color: "red",
+                                  fontSize: 12,
+                                  marginTop: 4,
+                                }}
                               >
                                 {discussionReplyError[discussion.id]}
                               </div>
@@ -726,7 +788,9 @@ const IdeasSection = () => {
                   <button className="post-btn" type="submit">
                     Start Discussion
                   </button>
-                  <div className="char-count">{discussionContent.length}/500 characters</div>
+                  <div className="char-count">
+                    {discussionContent.length}/500 characters
+                  </div>
                 </div>
               </form>
             </div>
