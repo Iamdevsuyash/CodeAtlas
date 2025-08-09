@@ -67,6 +67,13 @@ def init_database():
 # Call database initialization immediately
 init_database()
 
+# Global error handler to ensure CORS headers are always applied
+@app.errorhandler(500)
+def handle_500_error(e):
+    response = jsonify({"error": "Internal server error"})
+    response.status_code = 500
+    return response
+
 # CORS is handled by flask-cors configuration above
 
 
@@ -181,16 +188,29 @@ def get_setup_guide_with_gemini(readme, file_structure):
 # --- Auth Routes ---
 @app.route('/api/register', methods=['POST'])
 def register():
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
-    if User.query.filter_by(username=username).first():
-        return jsonify({"error": "Username already exists"}), 400
-    new_user = User(username=username)
-    new_user.set_password(password)
-    db.session.add(new_user)
-    db.session.commit()
-    return jsonify({"message": "User registered successfully"}), 201
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No JSON data provided"}), 400
+        
+        username = data.get('username')
+        password = data.get('password')
+        
+        if not username or not password:
+            return jsonify({"error": "Username and password are required"}), 400
+        
+        if User.query.filter_by(username=username).first():
+            return jsonify({"error": "Username already exists"}), 400
+        
+        new_user = User(username=username)
+        new_user.set_password(password)
+        db.session.add(new_user)
+        db.session.commit()
+        return jsonify({"message": "User registered successfully"}), 201
+    except Exception as e:
+        db.session.rollback()
+        print(f"Register error: {e}")
+        return jsonify({"error": "Registration failed"}), 500
 
 @app.route('/api/login', methods=['POST'])
 def login():
