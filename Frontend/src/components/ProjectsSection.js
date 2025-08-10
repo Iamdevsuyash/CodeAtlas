@@ -98,17 +98,22 @@ const ProjectsSection = () => {
     setTasks({ todo: [], inProgress: [], review: [], done: [] });
 
     // --- SETUP LISTENERS ---
-    const chatRoom = gunRef.current.get("chats").get(selectedTeam.id);
+    const chatNode = gunRef.current.get(`chat_${selectedTeam.id}`);
     const membersNode = gunRef.current.get(`members_${selectedTeam.id}`);
     const tasksNode = gunRef.current.get(`tasks_${selectedTeam.id}`);
     const presence = gunRef.current.get(`presence_${selectedTeam.id}`);
 
     // 1. Chat Listener
-    chatRoom.map().on((message, key) => {
-      if (message && message.text && message.author && message.timestamp) {
-        setChatMessages(prev =>
-          [...prev.filter(m => m.id !== key), { ...message, id: key }].sort((a, b) => a.timestamp - b.timestamp)
-        );
+    chatNode.map().on((message, id) => {
+      if (message) {
+        setChatMessages(prev => {
+          // If the message is already in the state, do nothing.
+          if (prev.some(m => m.id === id)) {
+            return prev;
+          }
+          // Otherwise, add the new message from another user.
+          return [...prev, { ...message, id }].sort((a, b) => a.timestamp - b.timestamp);
+        });
       }
     });
 
