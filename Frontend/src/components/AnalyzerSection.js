@@ -9,6 +9,7 @@ const AnalyzerSection = ({ selectedRepo }) => {
   const [activeTab, setActiveTab] = useState("overview");
   const [repoInfo, setRepoInfo] = useState(null);
   const [animateCards, setAnimateCards] = useState(false);
+  const [fileStructure, setFileStructure] = useState(null);
 
   const handleAnalyzeRepo = (e) => {
     e.preventDefault();
@@ -20,8 +21,14 @@ const AnalyzerSection = ({ selectedRepo }) => {
     setLoading(true);
     setError(null);
     setAnalysis(null);
+    setFileStructure(null);
     const info = extractRepoInfo(url);
     setRepoInfo(info);
+
+    // Fetch repository structure from GitHub API
+    if (info) {
+      fetchRepoStructure(info.owner, info.name);
+    }
 
     fetch("https://codeatlas1.onrender.com/api/analyze", {
       method: "POST",
@@ -69,6 +76,30 @@ const AnalyzerSection = ({ selectedRepo }) => {
       };
     }
     return null;
+  };
+
+  const fetchRepoStructure = async (owner, repo) => {
+    try {
+      // Fetch repository tree from GitHub API
+      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/HEAD?recursive=1`);
+      
+      if (!response.ok) {
+        console.warn('Failed to fetch repository structure from GitHub API');
+        return;
+      }
+      
+      const data = await response.json();
+      
+      // Extract file paths from the tree
+      const filePaths = data.tree
+        .filter(item => item.type === 'blob') // Only files, not directories
+        .map(item => item.path)
+        .join('\n');
+      
+      setFileStructure(filePaths);
+    } catch (error) {
+      console.warn('Error fetching repository structure:', error);
+    }
   };
 
   const parseStructureAnalysis = (htmlContent) => {
@@ -268,6 +299,7 @@ const AnalyzerSection = ({ selectedRepo }) => {
       <DependencyGraph
         structureAnalysis={analysis.structure_analysis}
         repoInfo={repoInfo}
+        fileStructure={fileStructure}
       />
     );
   };

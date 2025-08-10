@@ -156,6 +156,7 @@ def summarize_readme_with_gemini(readme_content):
     except Exception as e:
         return None, f"Error generating summary: {e}"
 
+
 def get_github_file_structure(owner, repo_name):
     repo_url = f"https://api.github.com/repos/{owner}/{repo_name}"
     headers = {"Authorization": f"Bearer {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
@@ -212,6 +213,8 @@ def register():
         db.session.add(new_user)
         db.session.commit()
         return jsonify({"message": "User registered successfully"}), 201
+
+        
     except Exception as e:
         print("Registration error:", e)
         traceback.print_exc()  # 🔹 Full error in Render logs
