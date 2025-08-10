@@ -48,11 +48,21 @@ const ProjectsSection = () => {
     };
   }, []);
 
-  // Load teams from localStorage (in real app, this would be from backend)
+  // Load teams from Gun.js
   useEffect(() => {
-    const savedTeams = localStorage.getItem("devboost_teams");
-    if (savedTeams) {
-      setTeams(JSON.parse(savedTeams));
+    if (gunRef.current) {
+      const teamsNode = gunRef.current.get('teams');
+      teamsNode.map().on((team, id) => {
+        if (team) {
+          setTeams(prevTeams => {
+            const teamExists = prevTeams.find(t => t.id === id);
+            if (!teamExists) {
+              return [...prevTeams, { ...team, id }];
+            }
+            return prevTeams; // Or update if needed
+          });
+        }
+      });
     }
   }, []);
 
@@ -166,32 +176,39 @@ const ProjectsSection = () => {
   }, [selectedTeam]);
 
   const createTeam = () => {
-    if (!newTeamName.trim()) return;
+    if (!newTeamName.trim() || !gunRef.current) return;
 
-    const newTeam = {
-      id: Date.now(),
+    const teamId = `team_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const newTeamData = {
       name: newTeamName,
       description: newTeamDescription,
       createdBy: user?.username || "Anonymous",
       createdAt: Date.now(),
-      members: [
-        {
-          username: user?.username || "Anonymous",
-          role: "Team Lead",
-          avatar: (user?.username || "A").charAt(0).toUpperCase(),
-          joinedAt: Date.now(),
-        },
-      ],
     };
 
-    const updatedTeams = [...teams, newTeam];
-    setTeams(updatedTeams);
-    localStorage.setItem("devboost_teams", JSON.stringify(updatedTeams));
+    // Save the new team to the 'teams' node in Gun.js
+    gunRef.current.get('teams').get(teamId).put(newTeamData, (ack) => {
+      if (ack.err) {
+        console.error('Error creating team:', ack.err);
+        return;
+      }
 
-    setNewTeamName("");
-    setNewTeamDescription("");
-    setShowCreateTeam(false);
-    setSelectedTeam(newTeam);
+      // Also, add the creator as the first member
+      const memberData = {
+        username: user?.username || "Anonymous",
+        role: "Team Lead",
+        avatar: (user?.username || "A").charAt(0).toUpperCase(),
+        joinedAt: Date.now(),
+      };
+      gunRef.current.get(`members_${teamId}`).get(user.username).put(memberData);
+
+      console.log('Team created successfully:', teamId);
+      setNewTeamName("");
+      setNewTeamDescription("");
+      setShowCreateTeam(false);
+      // The useEffect hook will automatically add the new team to the state
+      // and we can select it once it appears.
+    });
   };
 
   const sendMessage = () => {
