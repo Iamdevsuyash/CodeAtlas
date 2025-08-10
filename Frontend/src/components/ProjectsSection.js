@@ -217,14 +217,8 @@ const ProjectsSection = () => {
     console.log("Sending message:", message);
 
     // Use Gun's proper method to add a message with a unique key
-    const messageId = `msg_${Date.now()}_${Math.random()
-      .toString(36)
-      .substr(2, 9)}`;
-    gunRef.current
-      .get("chats")
-      .get(selectedTeam.id)
-      .get(messageId)
-      .put(message);
+    const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    gunRef.current.get(`chat_${selectedTeam.id}`).get(messageId).put(message);
 
     setNewMessage("");
   };
