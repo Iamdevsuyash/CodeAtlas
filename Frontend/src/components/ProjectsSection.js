@@ -102,6 +102,11 @@ const ProjectsSection = () => {
       }
     });
 
+    // DEBUG: Log when team data is received
+    gunRef.current.get('teams').map().on((team, id) => {
+        console.log('GUN DEBUG: Received team data:', id, team);
+    });
+
     // 3. Tasks Listener
     tasksNode.map().on((task, id) => {
       if (task && task.status) {
@@ -163,6 +168,7 @@ const ProjectsSection = () => {
 
     // Save the new team to the 'teams' node in Gun.js
     gunRef.current.get('teams').get(teamId).put(newTeamData, (ack) => {
+      console.log('GUN DEBUG: Create team ack:', ack); // Log the acknowledgement
       if (ack.err) {
         console.error('Error creating team:', ack.err);
         return;
