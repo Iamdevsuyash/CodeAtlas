@@ -1,0 +1,107 @@
+{
+  "summary": {
+    "total": 8,
+    "passed": 5,
+    "failed": 3,
+    "warnings": 0
+  },
+  "results": [
+    {
+      "test": "Health Check - http://localhost:8765",
+      "status": "PASS",
+      "message": "Server is responding",
+      "details": {
+        "status": 200,
+        "data": {
+          "status": "ok",
+          "message": "Gun.js server is running",
+          "timestamp": "2025-08-10T09:58:49.183Z"
+        }
+      },
+      "timestamp": "2025-08-10T09:58:49.197Z"
+    },
+    {
+      "test": "CORS Check - http://localhost:8765",
+      "status": "PASS",
+      "message": "CORS headers present",
+      "details": {
+        "access-control-allow-origin": "https://gitatlas.netlify.app",
+        "access-control-allow-methods": "GET,POST,PUT,DELETE,OPTIONS",
+        "access-control-allow-credentials": "true"
+      },
+      "timestamp": "2025-08-10T09:58:49.201Z"
+    },
+    {
+      "test": "Gun Connection - http://localhost:8765",
+      "status": "PASS",
+      "message": "Connection established",
+      "details": {
+        "messageId": "msg_1754819930216",
+        "endpoint": "http://localhost:8765/gun"
+      },
+      "timestamp": "2025-08-10T09:58:50.221Z"
+    },
+    {
+      "test": "Gun Sync - http://localhost:8765",
+      "status": "FAIL",
+      "message": "Data sync failed - no response received",
+      "details": {
+        "sent": {
+          "text": "Diagnostic test message",
+          "timestamp": 1754819929129,
+          "author": "DiagnosticTool"
+        }
+      },
+      "timestamp": "2025-08-10T09:58:55.222Z"
+    },
+    {
+      "test": "Health Check - https://codeatlas-gunjs.onrender.com",
+      "status": "PASS",
+      "message": "Server is responding",
+      "details": {
+        "status": 200,
+        "data": {
+          "status": "ok",
+          "message": "Gun.js server is running",
+          "timestamp": "2025-08-10T09:59:17.447Z"
+        }
+      },
+      "timestamp": "2025-08-10T09:59:17.737Z"
+    },
+    {
+      "test": "CORS Check - https://codeatlas-gunjs.onrender.com",
+      "status": "FAIL",
+      "message": "Missing CORS headers",
+      "details": {
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": "GET,HEAD,PUT,PATCH,POST,DELETE",
+        "access-control-allow-credentials": "true"
+      },
+      "timestamp": "2025-08-10T09:59:18.237Z"
+    },
+    {
+      "test": "Gun Connection - https://codeatlas-gunjs.onrender.com",
+      "status": "PASS",
+      "message": "Connection established",
+      "details": {
+        "messageId": "msg_1754819959242",
+        "endpoint": "https://codeatlas-gunjs.onrender.com/gun"
+      },
+      "timestamp": "2025-08-10T09:59:19.243Z"
+    },
+    {
+      "test": "Gun Sync - https://codeatlas-gunjs.onrender.com",
+      "status": "FAIL",
+      "message": "Data sync failed - no response received",
+      "details": {
+        "sent": {
+          "text": "Diagnostic test message",
+          "timestamp": 1754819929129,
+          "author": "DiagnosticTool"
+        }
+      },
+      "timestamp": "2025-08-10T09:59:24.244Z"
+    }
+  ],
+  "timestamp": "2025-08-10T09:59:24.246Z"
+}

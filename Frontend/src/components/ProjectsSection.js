@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Gun from "gun";
 import { useAuth } from "../context/AuthContext";
+import { getGunUrl } from "../config/api";
 
 const ProjectsSection = () => {
   const { user } = useAuth();
@@ -33,7 +34,7 @@ const ProjectsSection = () => {
   // Initialize Gun.js
   useEffect(() => {
     gunRef.current = Gun({
-      peers: ["https://codeatlas-gunjs.onrender.com"],
+      peers: [getGunUrl()],
       localStorage: false,
       radisk: false,
     });

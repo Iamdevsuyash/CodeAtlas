@@ -36,8 +36,11 @@ if database_url and database_url.startswith('postgres://'):
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url or f"sqlite:///tmp/ideas.db"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-# CORS configuration with explicit origins for credentialed requests
-CORS(app, supports_credentials=True, origins=["https://gitatlas.netlify.app"])
+# CORS configuration: read from env CORS_ORIGINS (comma-separated) or use sensible defaults
+cors_env = os.getenv('CORS_ORIGINS', 'https://gitatlas.netlify.app,https://codeatlas.netlify.app')
+allowed_origins = [o.strip() for o in cors_env.split(',') if o.strip()]
+print(f"🔒 Backend CORS allowed origins: {allowed_origins}")
+CORS(app, supports_credentials=True, origins=allowed_origins)
 
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config['SESSION_COOKIE_SECURE'] = True  # Required for cross-site cookies over HTTPS
