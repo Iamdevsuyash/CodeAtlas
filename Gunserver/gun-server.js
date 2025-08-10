@@ -1,71 +1,51 @@
-const Gun = require('gun');
 const express = require('express');
 const cors = require('cors');
+const Gun = require('gun');
 
+// --- Server Setup ---
 const app = express();
-const port = process.env.PORT || 8765;
-console.log(`🔧 Using port: ${port} (from ${process.env.PORT ? 'environment' : 'default'})`);
+const port = process.env.PORT || 8765; // Use Render's port, fallback for local dev
 
-// Enable CORS for all routes
-const allowedOrigins = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(",").map(origin => origin.trim())
-  : [
-      "https://gitatlas.netlify.app",
-      "https://codeatlas.netlify.app", 
-      "http://localhost:3000",
-      "http://localhost:3001"
-    ];
+// --- CORS Configuration ---
+const corsOriginsEnv = process.env.CORS_ORIGINS || 'http://localhost:3000';
+const allowedOrigins = corsOriginsEnv.split(',').map(origin => origin.trim());
 
-console.log("🔒 CORS allowed origins:", allowedOrigins);
+console.log(`🔫 Gun.js server allowing origins: ${allowedOrigins.join(', ')}`);
 
-app.use(
-  cors({
-    origin: allowedOrigins,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-  })
-);
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+};
 
-// Serve Gun.js client library
-// Health check endpoint for Render
+app.use(cors(corsOptions));
+
+// --- Health Check ---
+// A simple endpoint for Render to check if the service is alive.
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
+  res.status(200).json({ status: 'ok', message: 'Gun.js server is healthy.' });
 });
 
+// --- Gun.js Setup ---
+// Serve the gun.js client file.
 app.use(Gun.serve);
 
-// Create server and Gun instance
+// Create the HTTP server and attach Gun to it.
 const server = app.listen(port, () => {
-  console.log(`🔫 Gun.js server running on port ${port}`);
-  console.log(`📡 Real-time collaboration backend ready!`);
-  console.log(`🔌 WebSocket support enabled for real-time sync`);
+  console.log(`🚀 Gun.js server is live and listening on port ${port}`);
 });
 
-Gun({ web: server });
-
-// Health check endpoint
-app.get("/health", (req, res) => {
-  res.json({
-    status: "ok",
-    message: "Gun.js server is running",
-    timestamp: new Date().toISOString(),
-  });
+// Initialize Gun and attach it to the server.
+const gun = Gun({
+  web: server,
+  peers: [], // This instance is a relay peer.
+  radisk: false, // Disable Radisk for stateless Render deployment
+  localStorage: false, // Disable localStorage for the same reason
 });
 
-// Handle graceful shutdown
-process.on("SIGTERM", () => {
-  console.log("🛑 Shutting down Gun.js server...");
-  server.close(() => {
-    console.log("✅ Gun.js server closed");
-    process.exit(0);
-  });
-});
-
-process.on("SIGINT", () => {
-  console.log("\n🛑 Shutting down Gun.js server...");
-  server.close(() => {
-    console.log("✅ Gun.js server closed");
-    process.exit(0);
-  });
-});
+console.log('✨ Gun.js relay peer initialized.');
