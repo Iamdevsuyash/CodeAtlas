@@ -28,6 +28,11 @@ app.use(
 );
 
 // Serve Gun.js client library
+// Health check endpoint for Render
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 app.use(Gun.serve);
 
 // Create server and Gun instance

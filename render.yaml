@@ -29,6 +29,7 @@ services:
     buildCommand: "cd Gunserver && npm install"
     startCommand: "cd Gunserver && node gun-server.js"
     plan: starter
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
