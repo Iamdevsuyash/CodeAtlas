@@ -218,8 +218,15 @@ const ProjectsSection = () => {
 
     // Use Gun's proper method to add a message with a unique key
     const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const fullMessage = { ...message, id: messageId };
+
+    // 1. Manually update the local UI immediately for a responsive feel.
+    setChatMessages(prev => [...prev, fullMessage].sort((a, b) => a.timestamp - b.timestamp));
+
+    // 2. Send the message to Gun.js for other users.
     gunRef.current.get(`chat_${selectedTeam.id}`).get(messageId).put(message);
 
+    // 3. Clear the input box.
     setNewMessage("");
   };
 
