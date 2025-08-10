@@ -32,8 +32,7 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 8765
+
       - key: CORS_ORIGINS
         value: "https://gitatlas.netlify.app,https://codeatlas.netlify.app,http://localhost:3000"
 
