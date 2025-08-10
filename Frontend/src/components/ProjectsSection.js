@@ -66,114 +66,89 @@ const ProjectsSection = () => {
     }
   }, []);
 
-  // Set up real-time chat when team is selected
+  // Effect for handling all data loading and real-time updates when a team is selected.
   useEffect(() => {
-    if (selectedTeam && gunRef.current) {
-      console.log("Setting up chat for team:", selectedTeam.id);
+    if (!selectedTeam || !gunRef.current || !user) {
+      return;
+    }
 
-      // Clear previous messages when switching teams
-      setChatMessages([]);
+    console.log(`Setting up listeners for team: ${selectedTeam.name} (${selectedTeam.id})`);
 
-      const chatRoom = gunRef.current.get("chats").get(selectedTeam.id);
-      chatRef.current = chatRoom;
+    // --- RESET STATE ---
+    setChatMessages([]);
+    setTeamMembers([]);
+    setOnlineMembers(new Set());
+    setTasks({ todo: [], inProgress: [], review: [], done: [] });
 
-      // Listen for new messages
-      chatRoom.map().on((message, key) => {
-        console.log("Received message:", message, "with key:", key);
-        if (message && message.text && message.author && message.timestamp) {
-          setChatMessages((prev) => {
-            const exists = prev.find((msg) => msg.id === key);
-            if (!exists) {
-              const newMessages = [...prev, { ...message, id: key }].sort(
-                (a, b) => a.timestamp - b.timestamp
-              );
-              console.log("Updated messages:", newMessages);
-              return newMessages;
-            }
-            return prev;
+    // --- SETUP LISTENERS ---
+    const chatRoom = gunRef.current.get("chats").get(selectedTeam.id);
+    const membersNode = gunRef.current.get(`members_${selectedTeam.id}`);
+    const tasksNode = gunRef.current.get(`tasks_${selectedTeam.id}`);
+    const presence = gunRef.current.get(`presence_${selectedTeam.id}`);
+
+    // 1. Chat Listener
+    chatRoom.map().on((message, key) => {
+      if (message && message.text && message.author && message.timestamp) {
+        setChatMessages(prev =>
+          [...prev.filter(m => m.id !== key), { ...message, id: key }].sort((a, b) => a.timestamp - b.timestamp)
+        );
+      }
+    });
+
+    // 2. Members Listener
+    membersNode.map().on((memberData, username) => {
+      if (memberData) {
+        setTeamMembers(prev => [...prev.filter(m => m.username !== username), memberData]);
+      }
+    });
+
+    // 3. Tasks Listener
+    tasksNode.map().on((task, id) => {
+      if (task && task.status) {
+        setTasks(prev => {
+          const newTasks = { ...prev };
+          Object.keys(newTasks).forEach(col => {
+            newTasks[col] = newTasks[col].filter(t => t.id !== id);
           });
-        }
-      });
-
-      // Set up presence system
-      const presence = gunRef.current.get(`presence_${selectedTeam.id}`);
-      if (user) {
-        presence.get(user.username).put({
-          online: true,
-          lastSeen: Date.now(),
-          avatar: user.username.charAt(0).toUpperCase(),
-        });
-
-        // Listen for online members
-        presence.map().on((memberData, username) => {
-          if (memberData && memberData.online) {
-            setOnlineMembers((prev) => new Set([...prev, username]));
-          } else {
-            setOnlineMembers((prev) => {
-              const newSet = new Set(prev);
-              newSet.delete(username);
-              return newSet;
-            });
+          if (newTasks[task.status]) {
+            newTasks[task.status].push({ ...task, id });
           }
+          return newTasks;
         });
       }
+    });
 
-      // Cleanup function
-      return () => {
-        console.log("Cleaning up chat listeners for team:", selectedTeam.id);
-        if (chatRoom) {
-          chatRoom.off();
+    // 4. Presence System
+    presence.get(user.username).put({ online: true, lastSeen: Date.now() });
+    presence.map().on((memberData, username) => {
+      setOnlineMembers(prev => {
+        const newSet = new Set(prev);
+        if (memberData && memberData.online) {
+          newSet.add(username);
+        } else {
+          newSet.delete(username);
         }
-        if (user && presence) {
-          presence.get(user.username).put({
-            online: false,
-            lastSeen: Date.now(),
-          });
-        }
-      };
-    }
+        return newSet;
+      });
+    });
+
+    // --- CLEANUP FUNCTION ---
+    return () => {
+      console.log(`Cleaning up listeners for team: ${selectedTeam.id}`);
+      chatRoom.off();
+      membersNode.off();
+      tasksNode.off();
+      presence.off();
+      if (user) {
+        presence.get(user.username).put({ online: false, lastSeen: Date.now() });
+      }
+    };
   }, [selectedTeam, user]);
 
   // Auto-scroll chat to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
-
-  // Load team data when selected
-  useEffect(() => {
-    if (selectedTeam) {
-      // Load team members
-      setTeamMembers(selectedTeam.members || []);
-
-      // Load tasks from localStorage
-      const savedTasks = localStorage.getItem(`tasks_${selectedTeam.id}`);
-      if (savedTasks) {
-        setTasks(JSON.parse(savedTasks));
-      } else {
-        // Initialize with sample tasks
-        const sampleTasks = {
-          todo: [
-            {
-              id: 1,
-              title: "Setup project repository",
-              description: "Initialize Git repo and basic structure",
-              assignee: "John Developer",
-              priority: "high",
-              createdAt: Date.now(),
-            },
-          ],
-          inProgress: [],
-          review: [],
-          done: [],
-        };
-        setTasks(sampleTasks);
-        localStorage.setItem(
-          `tasks_${selectedTeam.id}`,
-          JSON.stringify(sampleTasks)
-        );
-      }
-    }
-  }, [selectedTeam]);
 
   const createTeam = () => {
     if (!newTeamName.trim() || !gunRef.current) return;
@@ -237,34 +212,33 @@ const ProjectsSection = () => {
   };
 
   const addTask = () => {
-    if (!newTaskTitle.trim()) return;
+    if (!newTaskTitle.trim() || !selectedTeam || !gunRef.current) return;
 
-    const newTask = {
-      id: Date.now(),
+    const taskId = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const newTaskData = {
       title: newTaskTitle,
       description: newTaskDescription,
       assignee: newTaskAssignee,
       priority: newTaskPriority,
       createdAt: Date.now(),
       createdBy: user?.username || "Anonymous",
+      status: 'todo' // Default status
     };
 
-    const updatedTasks = {
-      ...tasks,
-      todo: [...tasks.todo, newTask],
-    };
-
-    setTasks(updatedTasks);
-    localStorage.setItem(
-      `tasks_${selectedTeam.id}`,
-      JSON.stringify(updatedTasks)
-    );
-
-    setNewTaskTitle("");
-    setNewTaskDescription("");
-    setNewTaskAssignee("");
-    setNewTaskPriority("medium");
-    setShowAddTask(false);
+    // Save the new task to the team's tasks node in Gun.js
+    gunRef.current.get(`tasks_${selectedTeam.id}`).get(taskId).put(newTaskData, (ack) => {
+      if (ack.err) {
+        console.error('Error adding task:', ack.err);
+        return;
+      }
+      console.log('Task added successfully:', taskId);
+      setNewTaskTitle("");
+      setNewTaskDescription("");
+      setNewTaskAssignee("");
+      setNewTaskPriority("medium");
+      setShowAddTask(false);
+      // The task will be added to the state via the real-time listener.
+    });
   };
 
   const moveTask = (taskId, fromColumn, toColumn) => {
@@ -285,32 +259,33 @@ const ProjectsSection = () => {
   };
 
   const joinTeam = (team) => {
-    if (!user) return;
+    if (!user || !gunRef.current) return;
 
-    const isAlreadyMember = team.members.some(
-      (member) => member.username === user.username
-    );
-    if (isAlreadyMember) {
-      setSelectedTeam(team);
-      return;
-    }
+    const membersNode = gunRef.current.get(`members_${team.id}`);
 
-    const newMember = {
-      username: user.username,
-      role: "Developer",
-      avatar: user.username.charAt(0).toUpperCase(),
-      joinedAt: Date.now(),
-    };
-
-    const updatedTeam = {
-      ...team,
-      members: [...team.members, newMember],
-    };
-
-    const updatedTeams = teams.map((t) => (t.id === team.id ? updatedTeam : t));
-    setTeams(updatedTeams);
-    localStorage.setItem("devboost_teams", JSON.stringify(updatedTeams));
-    setSelectedTeam(updatedTeam);
+    // Check if user is already a member
+    membersNode.get(user.username).once((memberData) => {
+      if (memberData) {
+        // Already a member, just select the team
+        setSelectedTeam(team);
+      } else {
+        // Not a member, add them to the team in Gun.js
+        const newMember = {
+          username: user.username,
+          role: "Developer",
+          avatar: user.username.charAt(0).toUpperCase(),
+          joinedAt: Date.now(),
+        };
+        membersNode.get(user.username).put(newMember, (ack) => {
+          if (ack.err) {
+            console.error('Error joining team:', ack.err);
+          } else {
+            console.log('Successfully joined team:', team.name);
+            setSelectedTeam(team);
+          }
+        });
+      }
+    });
   };
 
   const renderTeamList = () => (
