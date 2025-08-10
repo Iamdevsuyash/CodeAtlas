@@ -156,8 +156,8 @@ const ProjectsSection = () => {
 
     // --- CLEANUP FUNCTION ---
     return () => {
-      console.log(`Cleaning up listeners for team: ${selectedTeam.id}`);
-      chatRoom.off();
+      console.log(`Cleaning up listeners for team: ${selectedTeam.name}`);
+      chatNode.off();
       membersNode.off();
       tasksNode.off();
       presence.off();
