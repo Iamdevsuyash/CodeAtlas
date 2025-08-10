@@ -2,7 +2,7 @@
 const API_CONFIG = {
   // Use environment variable or fallback to production URL
   BASE_URL: process.env.REACT_APP_API_URL || 'https://codeatlas-backend.onrender.com',
-  GUN_URL: process.env.REACT_APP_GUN_URL || 'https://codeatlas-gunjs.onrender.com'
+  GUN_URL: process.env.REACT_APP_GUN_URL || 'https://codeatlas-gunjs.onrender.com/gun'
 };
 
 // Helper function to get API URL
