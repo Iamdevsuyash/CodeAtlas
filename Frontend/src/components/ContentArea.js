@@ -10,13 +10,13 @@ import ProjectsSection from './ProjectsSection';
 import Header from './Header';
 import ApiHubSection from './ApiHubSection';
 
-const ContentArea = ({ activeSection }) => {
+const ContentArea = ({ activeSection, selectedRepo, onAnalyzeRepo, onShareIdea }) => {
     const renderSection = () => {
         switch (activeSection) {
             case 'analyzer':
-                return <AnalyzerSection />;
+                return <AnalyzerSection selectedRepo={selectedRepo} />;
             case 'trending':
-                return <TrendingSection />;
+                return <TrendingSection onAnalyze={onAnalyzeRepo} onShareIdea={onShareIdea} />;
             case 'related':
                 return <RelatedSection />;
             case 'devtools':
@@ -30,7 +30,7 @@ const ContentArea = ({ activeSection }) => {
             case 'projects':
                 return <ProjectsSection />;
             default:
-                return <AnalyzerSection />;
+                return <AnalyzerSection selectedRepo={selectedRepo} />;
         }
     };
 

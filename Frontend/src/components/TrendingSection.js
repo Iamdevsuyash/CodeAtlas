@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-const TrendingSection = () => {
+const TrendingSection = ({ onAnalyze, onShareIdea }) => {
   const [trendingRepos, setTrendingRepos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -75,8 +75,8 @@ const TrendingSection = () => {
               </div>
               <div className="tool-desc">{repo.description}</div>
               <div className="card-actions">
-                <button className="card-button">Analyze</button>
-                <button className="card-button">Share Idea</button>
+                <button className="card-button" onClick={() => onAnalyze(repo)}>Analyze</button>
+                <button className="card-button" onClick={onShareIdea}>Share Idea</button>
               </div>
             </div>
           ))
