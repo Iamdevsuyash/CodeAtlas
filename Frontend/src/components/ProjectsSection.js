@@ -14,6 +14,7 @@ const ProjectsSection = () => {
   const [chatMessages, setChatMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [teamMembers, setTeamMembers] = useState([]);
+  const [userTeams, setUserTeams] = useState(new Set()); // Tracks teams the user has joined
   const [tasks, setTasks] = useState({
     todo: [],
     inProgress: [],
@@ -45,23 +46,42 @@ const ProjectsSection = () => {
     };
   }, []);
 
-  // Load teams from Gun.js
+  // Load all teams and user's teams from Gun.js
   useEffect(() => {
-    if (gunRef.current) {
-      const teamsNode = gunRef.current.get('teams');
-      teamsNode.map().on((team, id) => {
-        if (team) {
-          setTeams(prevTeams => {
-            const teamExists = prevTeams.find(t => t.id === id);
-            if (!teamExists) {
-              return [...prevTeams, { ...team, id }];
-            }
-            return prevTeams; // Or update if needed
-          });
-        }
+    if (!gunRef.current) return;
+
+    // 1. Load all teams (doesn't require user to be logged in)
+    const teamsNode = gunRef.current.get('teams');
+    teamsNode.map().on((team, id) => {
+      if (team) {
+        setTeams(prev => {
+          const teamExists = prev.find(t => t.id === id);
+          if (!teamExists) return [...prev, { ...team, id }];
+          return prev.map(t => t.id === id ? { ...team, id } : t);
+        });
+      }
+    });
+
+    // 2. Load the current user's list of teams (requires user)
+    if (user?.username) {
+      const userTeamsNode = gunRef.current.get('users').get(user.username).get('teams');
+      userTeamsNode.map().on((isMember, teamId) => {
+        setUserTeams(prev => {
+          const newSet = new Set(prev);
+          isMember ? newSet.add(teamId) : newSet.delete(teamId);
+          return newSet;
+        });
       });
     }
-  }, []);
+
+    // Cleanup listeners on unmount
+    return () => {
+      teamsNode.off();
+      if (user?.username) {
+        gunRef.current.get('users').get(user.username).get('teams').off();
+      }
+    };
+  }, [user?.username]); // Rerun only when the user changes
 
   // Effect for handling all data loading and real-time updates when a team is selected.
   useEffect(() => {
@@ -98,8 +118,6 @@ const ProjectsSection = () => {
         setTeamMembers(prev => [...prev.filter(m => m.username !== username), memberData]);
       }
     });
-
-
 
     // 3. Tasks Listener
     tasksNode.map().on((task, id) => {
@@ -156,33 +174,33 @@ const ProjectsSection = () => {
     const newTeamData = {
       name: newTeamName,
       description: newTeamDescription,
-      createdBy: user?.username || "Anonymous",
+      createdBy: user.username,
       createdAt: Date.now(),
     };
 
     // Save the new team to the 'teams' node in Gun.js
     gunRef.current.get('teams').get(teamId).put(newTeamData, (ack) => {
-
       if (ack.err) {
         console.error('Error creating team:', ack.err);
         return;
       }
 
-      // Also, add the creator as the first member
+      // Add creator as first member
       const memberData = {
-        username: user?.username || "Anonymous",
+        username: user.username,
         role: "Team Lead",
-        avatar: (user?.username || "A").charAt(0).toUpperCase(),
+        avatar: user.username.charAt(0).toUpperCase(),
         joinedAt: Date.now(),
       };
       gunRef.current.get(`members_${teamId}`).get(user.username).put(memberData);
+
+      // Also add the new team to the creator's list of teams
+      gunRef.current.get('users').get(user.username).get('teams').get(teamId).put(true);
 
       console.log('Team created successfully:', teamId);
       setNewTeamName("");
       setNewTeamDescription("");
       setShowCreateTeam(false);
-      // The useEffect hook will automatically add the new team to the state
-      // and we can select it once it appears.
     });
   };
 
@@ -258,33 +276,32 @@ const ProjectsSection = () => {
     );
   };
 
-  const joinTeam = (team) => {
+  const joinTeam = (teamId) => {
     if (!user || !gunRef.current) return;
 
-    const membersNode = gunRef.current.get(`members_${team.id}`);
+    const memberData = {
+      username: user.username,
+      role: "Member",
+      avatar: (user.username || "A").charAt(0).toUpperCase(),
+      joinedAt: Date.now(),
+    };
 
-    // Check if user is already a member
-    membersNode.get(user.username).once((memberData) => {
-      if (memberData) {
-        // Already a member, just select the team
-        setSelectedTeam(team);
-      } else {
-        // Not a member, add them to the team in Gun.js
-        const newMember = {
-          username: user.username,
-          role: "Developer",
-          avatar: user.username.charAt(0).toUpperCase(),
-          joinedAt: Date.now(),
-        };
-        membersNode.get(user.username).put(newMember, (ack) => {
-          if (ack.err) {
-            console.error('Error joining team:', ack.err);
-          } else {
-            console.log('Successfully joined team:', team.name);
-            setSelectedTeam(team);
-          }
-        });
+    // Add the user to the team's members list
+    gunRef.current.get(`members_${teamId}`).get(user.username).put(memberData);
+
+    // Add the team to the user's list of teams
+    gunRef.current.get('users').get(user.username).get('teams').get(teamId).put(true, (ack) => {
+       if (ack.err) {
+        console.error(`Error adding team to user's list:`, ack.err);
+        return;
       }
+      console.log(`Successfully joined team ${teamId}`);
+      // After joining, find the full team object and select it
+      gunRef.current.get('teams').get(teamId).once(teamData => {
+          if(teamData) {
+              setSelectedTeam(teamData);
+          }
+      });
     });
   };
 
@@ -334,28 +351,15 @@ const ProjectsSection = () => {
           <div key={team.id} className="team-card">
             <div className="team-card-header">
               <h4>{team.name}</h4>
-              <span className="member-count">
-                {team.members.length} members
-              </span>
             </div>
             <p className="team-description">{team.description}</p>
-            <div className="team-members-preview">
-              {team.members.slice(0, 3).map((member) => (
-                <div key={member.username} className="member-avatar-small">
-                  {member.avatar}
-                </div>
-              ))}
-              {team.members.length > 3 && (
-                <div className="member-avatar-small more">
-                  +{team.members.length - 3}
-                </div>
+            <div className="team-card-actions">
+              {userTeams.has(team.id) ? (
+                <button onClick={() => setSelectedTeam(team)}>Select</button>
+              ) : (
+                <button onClick={() => joinTeam(team.id)}>Join Team</button>
               )}
             </div>
-            <button className="join-team-btn" onClick={() => joinTeam(team)}>
-              {team.members.some((m) => m.username === user?.username)
-                ? "Enter Team"
-                : "Join Team"}
-            </button>
           </div>
         ))}
       </div>
