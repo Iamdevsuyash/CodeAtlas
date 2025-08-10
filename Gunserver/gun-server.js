@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const Gun = require('gun');
+const http = require('http');
 
 // --- Server Setup ---
 const app = express();
@@ -35,17 +36,20 @@ app.get('/health', (req, res) => {
 // Serve the gun.js client file.
 app.use(Gun.serve);
 
-// Create the HTTP server and attach Gun to it.
-const server = app.listen(port, () => {
-  console.log(`🚀 Gun.js server is live and listening on port ${port}`);
-});
+// Create an HTTP server instance from the Express app.
+const server = http.createServer(app);
 
-// Initialize Gun and attach it to the server.
+// Initialize Gun and attach it to the HTTP server.
 const gun = Gun({
   web: server,
-  peers: [], // This instance is a relay peer.
-  radisk: false, // Disable Radisk for stateless Render deployment
-  localStorage: false, // Disable localStorage for the same reason
+  peers: [],
+  radisk: false,
+  localStorage: false,
+});
+
+// Start the server.
+server.listen(port, () => {
+  console.log(`🚀 Gun.js server is live and listening on port ${port}`);
 });
 
 console.log('✨ Gun.js relay peer initialized.');
