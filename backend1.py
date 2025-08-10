@@ -420,16 +420,6 @@ def add_comment(post_id):
         db.session.rollback()
         return jsonify({'success': False, 'message': 'Database error.'}), 500
 
-# --- Debugging Route ---
-@app.route('/api/debug-cors', methods=['GET'])
-def debug_cors():
-    origins = os.getenv('CORS_ORIGINS', 'Not Set')
-    return jsonify({
-        "message": "CORS Configuration Debug",
-        "CORS_ORIGINS_env": origins,
-        "allowed_origins_list": allowed_origins
-    })
-
 # --- Run the App ---
 if __name__ == '__main__':
     with app.app_context():
