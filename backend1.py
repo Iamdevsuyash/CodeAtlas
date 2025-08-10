@@ -37,7 +37,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = database_url or f"sqlite:///tmp/ideas.db
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 # CORS configuration: read from env CORS_ORIGINS (comma-separated) or use sensible defaults
+
 cors_env = os.getenv('CORS_ORIGINS', 'https://gitatlas.netlify.app,https://codeatlas.netlify.app')
+
 allowed_origins = [o.strip() for o in cors_env.split(',') if o.strip()]
 print(f"🔒 Backend CORS allowed origins: {allowed_origins}")
 CORS(app, supports_credentials=True, origins=allowed_origins)
@@ -417,6 +419,16 @@ def add_comment(post_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': 'Database error.'}), 500
+
+# --- Debugging Route ---
+@app.route('/api/debug-cors', methods=['GET'])
+def debug_cors():
+    origins = os.getenv('CORS_ORIGINS', 'Not Set')
+    return jsonify({
+        "message": "CORS Configuration Debug",
+        "CORS_ORIGINS_env": origins,
+        "allowed_origins_list": allowed_origins
+    })
 
 # --- Run the App ---
 if __name__ == '__main__':
