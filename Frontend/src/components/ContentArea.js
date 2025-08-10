@@ -24,7 +24,7 @@ const ContentArea = ({ activeSection, selectedRepo, onAnalyzeRepo, onShareIdea }
             case 'apihub':
                 return <ApiHubSection />;
             case 'ideas':
-                return <IdeasSection />;
+                return <IdeasSection selectedRepo={selectedRepo} />;
             case 'messages':
                 return <MessagesSection />;
             case 'projects':

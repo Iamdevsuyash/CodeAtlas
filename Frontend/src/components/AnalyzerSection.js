@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import DependencyGraph from "./DependencyGraph";
 
-const AnalyzerSection = () => {
+const AnalyzerSection = ({ selectedRepo }) => {
   const [repoUrl, setRepoUrl] = useState("");
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -10,10 +10,52 @@ const AnalyzerSection = () => {
   const [repoInfo, setRepoInfo] = useState(null);
   const [animateCards, setAnimateCards] = useState(false);
 
+  const handleAnalyzeRepo = (e) => {
+    e.preventDefault();
+    startAnalysis(repoUrl);
+  };
+
+  const startAnalysis = (url) => {
+    if (!url) return;
+    setLoading(true);
+    setError(null);
+    setAnalysis(null);
+    const info = extractRepoInfo(url);
+    setRepoInfo(info);
+
+    fetch("https://codeatlas1.onrender.com/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ repo_url: url }),
+      credentials: "include",
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({ error: "An unknown error occurred." }));
+          throw new Error(errData.error || `Request failed with status ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (data.error) throw new Error(data.error);
+        setAnalysis(data);
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    if (selectedRepo && selectedRepo.url) {
+      setRepoUrl(selectedRepo.url);
+      startAnalysis(selectedRepo.url);
+    }
+  }, [selectedRepo]);
+
   useEffect(() => {
     if (analysis) {
       setAnimateCards(true);
-      setTimeout(() => setAnimateCards(false), 600);
+      const timer = setTimeout(() => setAnimateCards(false), 600);
+      return () => clearTimeout(timer);
     }
   }, [analysis]);
 
@@ -27,45 +69,6 @@ const AnalyzerSection = () => {
       };
     }
     return null;
-  };
-
-  const handleAnalyzeRepo = (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setAnalysis(null);
-
-    const info = extractRepoInfo(repoUrl);
-    setRepoInfo(info);
-
-    fetch("https://codeatlas1.onrender.com/api/analyze", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ repo_url: repoUrl }),
-      credentials: "include",
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          const errData = await res
-            .json()
-            .catch(() => ({ error: "An unknown error occurred." }));
-          throw new Error(
-            errData.error || `Request failed with status ${res.status}`
-          );
-        }
-        return res.json();
-      })
-      .then((data) => {
-        if (data.error) {
-          throw new Error(data.error);
-        }
-        setAnalysis(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
   };
 
   const parseStructureAnalysis = (htmlContent) => {
@@ -265,7 +268,6 @@ const AnalyzerSection = () => {
       <DependencyGraph
         structureAnalysis={analysis.structure_analysis}
         repoInfo={repoInfo}
-        fileStructure={analysis.file_structure}
       />
     );
   };

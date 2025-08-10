@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-const IdeasSection = () => {
+const IdeasSection = ({ selectedRepo }) => {
   const [posts, setPosts] = useState([]);
   const [discussions, setDiscussions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -83,6 +83,12 @@ const IdeasSection = () => {
     fetchPosts();
     fetchDiscussions();
   }, []);
+
+  useEffect(() => {
+    if (selectedRepo && selectedRepo.url) {
+      setRepoName(selectedRepo.url);
+    }
+  }, [selectedRepo]);
 
   const handleIdeaFormSubmit = (e) => {
     e.preventDefault();
