@@ -33,11 +33,8 @@ const ProjectsSection = () => {
 
   // Initialize Gun.js
   useEffect(() => {
-    gunRef.current = Gun({
-      peers: [getGunUrl()],
-      localStorage: false,
-      radisk: false,
-    });
+    // A more robust initialization, letting Gun manage its own storage options.
+    gunRef.current = Gun(getGunUrl());
 
     console.log("Gun.js initialized:", gunRef.current);
 
@@ -102,10 +99,7 @@ const ProjectsSection = () => {
       }
     });
 
-    // DEBUG: Log when team data is received
-    gunRef.current.get('teams').map().on((team, id) => {
-        console.log('GUN DEBUG: Received team data:', id, team);
-    });
+
 
     // 3. Tasks Listener
     tasksNode.map().on((task, id) => {
@@ -168,7 +162,7 @@ const ProjectsSection = () => {
 
     // Save the new team to the 'teams' node in Gun.js
     gunRef.current.get('teams').get(teamId).put(newTeamData, (ack) => {
-      console.log('GUN DEBUG: Create team ack:', ack); // Log the acknowledgement
+
       if (ack.err) {
         console.error('Error creating team:', ack.err);
         return;
