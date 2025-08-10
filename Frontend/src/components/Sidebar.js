@@ -33,15 +33,7 @@ const Sidebar = ({ activeSection, setActiveSection }) => {
           <span className="tab-icon">🔥</span>
           Trending
         </div>
-        <div
-          className={`sidebar-tab ${
-            activeSection === "related" ? "active" : ""
-          }`}
-          onClick={() => handleTabClick("related")}
-        >
-          <span className="tab-icon">🔗</span>
-          Related Git Repos
-        </div>
+
         <div
           className={`sidebar-tab ${
             activeSection === "devtools" ? "active" : ""
@@ -68,16 +60,7 @@ const Sidebar = ({ activeSection, setActiveSection }) => {
           Ideas
           <span className="notification-badge">12</span>
         </div>
-        <div
-          className={`sidebar-tab ${
-            activeSection === "messages" ? "active" : ""
-          }`}
-          onClick={() => handleTabClick("messages")}
-        >
-          <span className="tab-icon">💬</span>
-          Messages
-          <span className="notification-badge">5</span>
-        </div>
+
         <div
           className={`sidebar-tab ${
             activeSection === "projects" ? "active" : ""
