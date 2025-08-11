@@ -38,7 +38,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 # CORS configuration: read from env CORS_ORIGINS (comma-separated) or use sensible defaults
 
-cors_env = os.getenv('CORS_ORIGINS', 'https://gitatlas.netlify.app,https://codeatlas.netlify.app')
+cors_env = os.getenv('CORS_ORIGINS', 'https://gitatlas.netlify.app,https://codeatlas.netlify.app,http://localhost:3000,http://localhost:5000,http://localhost:8765')
 
 allowed_origins = [o.strip() for o in cors_env.split(',') if o.strip()]
 print(f"🔒 Backend CORS allowed origins: {allowed_origins}")
@@ -278,7 +278,6 @@ def get_api_entries():
 
 # --- API Routes ---
 @app.route('/api/analyze', methods=['POST'])
-@login_required
 def analyze_repo_route():
     data = request.get_json()
     repo_url = data.get('repo_url')

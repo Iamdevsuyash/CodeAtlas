@@ -14,7 +14,7 @@ const AuthPage = () => {
             <div className="auth-container">
                 <div className="auth-info">
                     <div className="info-content">
-                        <h2>Welcome to DevBoost</h2>
+                        <h2>Welcome to CodeAtlas</h2>
                         <p>Your ultimate platform for code analysis and development insights.</p>
                     </div>
                 </div>

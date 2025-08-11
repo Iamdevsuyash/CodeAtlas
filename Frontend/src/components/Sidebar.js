@@ -12,7 +12,7 @@ const Sidebar = ({ activeSection, setActiveSection }) => {
   return (
     <div className="sidebar">
       <div className="sidebar-header">
-        {user ? `WELCOME, ${user.username.toUpperCase()}` : "DevBoost"}
+        {user ? `WELCOME, ${user.username.toUpperCase()}` : "CodeAtlas"}
       </div>
       <div className="sidebar-tabs">
         <div

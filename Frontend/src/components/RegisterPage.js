@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { getApiUrl } from '../config/api';
 
 const RegisterPage = ({ onSwitchToLogin }) => {
     const [username, setUsername] = useState('');
@@ -12,8 +13,7 @@ const RegisterPage = ({ onSwitchToLogin }) => {
         setError('');
         setMessage('');
         try {
-            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-            const response = await fetch(`${apiUrl}/api/register`, {
+            const response = await fetch(getApiUrl('/api/register'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password }),
@@ -33,7 +33,7 @@ const RegisterPage = ({ onSwitchToLogin }) => {
 
     return (
         <div className="auth-form-container">
-            <h2>Register for DevBoost</h2>
+            <h2>Register for CodeAtlas</h2>
             <form onSubmit={handleSubmit} className="auth-form">
                 <input
                     type="text"

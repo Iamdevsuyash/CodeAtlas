@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { getApiUrl } from "../config/api";
 import DependencyGraph from "./DependencyGraph";
 
 const AnalyzerSection = ({ selectedRepo }) => {
@@ -30,7 +31,9 @@ const AnalyzerSection = ({ selectedRepo }) => {
       fetchRepoStructure(info.owner, info.name);
     }
 
-    fetch("https://codeatlas1.onrender.com/api/analyze", {
+    const apiUrl = getApiUrl('/api/analyze');
+    
+    fetch(apiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ repo_url: url }),
@@ -310,24 +313,21 @@ const AnalyzerSection = ({ selectedRepo }) => {
         <div className="header-content">
           <div className="header-icon">🔬</div>
           <div>
-            <h1>Repository Analyzer</h1>
-            <p>
-              AI-powered analysis of GitHub repositories with detailed insights
-            </p>
+            <h2>Repository Analyzer</h2>
+            <p>AI-powered analysis of GitHub repositories with detailed insights</p>
           </div>
         </div>
-      </div>
-
-      <div className="analyzer-search">
-        <form className="modern-search-bar" onSubmit={handleAnalyzeRepo}>
+        
+        <form onSubmit={handleAnalyzeRepo} className="url-input-form">
           <div className="search-input-group">
-            <div className="search-icon">🔍</div>
+            <span className="search-icon">🔗</span>
             <input
-              type="text"
-              placeholder="Enter GitHub repository URL (e.g., https://github.com/owner/repo)"
+              type="url"
               value={repoUrl}
               onChange={(e) => setRepoUrl(e.target.value)}
+              placeholder="Enter GitHub repository URL (e.g., https://github.com/user/repo)"
               className="search-input"
+              required
             />
             <button type="submit" disabled={loading} className="search-button">
               {loading ? (

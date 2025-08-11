@@ -1,7 +1,11 @@
 // API Configuration for production and development
 const API_CONFIG = {
-  // Use environment variable or fallback to production URL
-  BASE_URL: process.env.REACT_APP_API_URL || 'https://codeatlas-backend.onrender.com',
+  // Prefer explicit env; fallback to localhost in dev, production URL otherwise
+  BASE_URL:
+    (process.env.REACT_APP_API_URL && process.env.REACT_APP_API_URL.trim()) ||
+    (process.env.NODE_ENV === 'development'
+      ? 'http://localhost:5000'
+      : 'https://codeatlas1.onrender.com'),
   GUN_URL: 'https://codeatlas-gunjs.onrender.com/gun'
 };
 

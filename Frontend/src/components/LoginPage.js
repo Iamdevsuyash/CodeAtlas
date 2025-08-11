@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { getApiUrl } from '../config/api';
 
 const LoginPage = ({ onSwitchToRegister }) => {
     const [username, setUsername] = useState('');
@@ -14,8 +15,7 @@ const LoginPage = ({ onSwitchToRegister }) => {
         e.preventDefault();
         setError('');
         try {
-            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-            const response = await fetch(`${apiUrl}/api/login`, {
+            const response = await fetch(getApiUrl('/api/login'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password }),
@@ -35,7 +35,7 @@ const LoginPage = ({ onSwitchToRegister }) => {
 
     return (
         <div className="auth-form-container">
-            <h2>Login to DevBoost</h2>
+            <h2>Login to CodeAtlas</h2>
             <form onSubmit={handleSubmit} className="auth-form">
                 <input
                     type="text"

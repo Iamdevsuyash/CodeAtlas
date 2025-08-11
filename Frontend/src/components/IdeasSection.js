@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { getApiUrl } from "../config/api";
 
 const IdeasSection = ({ selectedRepo }) => {
   const [posts, setPosts] = useState([]);
@@ -27,10 +28,9 @@ const IdeasSection = ({ selectedRepo }) => {
 
   const fetchPosts = () => {
     setLoading(true);
-    console.log(
-      "Fetching posts from https://codeatlas1.onrender.com/api/posts"
-    );
-    fetch("https://codeatlas1.onrender.com/api/posts")
+    const url = getApiUrl('/api/posts');
+    console.log("Fetching posts from", url);
+    fetch(url)
       .then((res) => {
         console.log("Response status:", res.status);
         if (!res.ok) {
@@ -54,10 +54,9 @@ const IdeasSection = ({ selectedRepo }) => {
 
   const fetchDiscussions = () => {
     setDiscussionsLoading(true);
-    console.log(
-      "Fetching discussions from https://codeatlas1.onrender.com/api/discussions"
-    );
-    fetch("https://codeatlas1.onrender.com/api/discussions")
+    const url = getApiUrl('/api/discussions');
+    console.log("Fetching discussions from", url);
+    fetch(url)
       .then((res) => {
         console.log("Discussions response status:", res.status);
         if (!res.ok) {
@@ -93,7 +92,7 @@ const IdeasSection = ({ selectedRepo }) => {
   const handleIdeaFormSubmit = (e) => {
     e.preventDefault();
     setError(null);
-    fetch("https://codeatlas1.onrender.com/api/posts", {
+    fetch(getApiUrl('/api/posts'), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -119,7 +118,7 @@ const IdeasSection = ({ selectedRepo }) => {
   const handleDiscussionFormSubmit = (e) => {
     e.preventDefault();
     setDiscussionError(null);
-    fetch("https://codeatlas1.onrender.com/api/discussions", {
+    fetch(getApiUrl('/api/discussions'), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -149,7 +148,7 @@ const IdeasSection = ({ selectedRepo }) => {
   // Handle discussion like
   const handleDiscussionLike = (discussionId) => {
     fetch(
-      `https://codeatlas1.onrender.com/api/discussions/${discussionId}/like`,
+      getApiUrl(`/api/discussions/${discussionId}/like`),
       {
         method: "POST",
         headers: {
@@ -175,9 +174,7 @@ const IdeasSection = ({ selectedRepo }) => {
   // Fetch replies for a discussion
   const fetchDiscussionReplies = (discussionId) => {
     setDiscussionReplyLoading((prev) => ({ ...prev, [discussionId]: true }));
-    fetch(
-      `https://codeatlas1.onrender.com/api/discussions/${discussionId}/replies`
-    )
+    fetch(getApiUrl(`/api/discussions/${discussionId}/replies`))
       .then((res) => res.json())
       .then((data) => {
         setDiscussionReplies((prev) => ({ ...prev, [discussionId]: data }));
@@ -215,7 +212,7 @@ const IdeasSection = ({ selectedRepo }) => {
     e.preventDefault();
     setDiscussionReplyError((prev) => ({ ...prev, [discussionId]: null }));
     fetch(
-      `https://codeatlas1.onrender.com/api/discussions/${discussionId}/replies`,
+      getApiUrl(`/api/discussions/${discussionId}/replies`),
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -248,7 +245,7 @@ const IdeasSection = ({ selectedRepo }) => {
   // Fetch comments for a post
   const fetchComments = (postId) => {
     setCommentLoading((prev) => ({ ...prev, [postId]: true }));
-    fetch(`https://codeatlas1.onrender.com/posts/${postId}/comments`)
+    fetch(getApiUrl(`/api/posts/${postId}/comments`))
       .then((res) => res.json())
       .then((data) => {
         setComments((prev) => ({ ...prev, [postId]: data }));
@@ -274,7 +271,7 @@ const IdeasSection = ({ selectedRepo }) => {
   const handleCommentSubmit = (e, postId) => {
     e.preventDefault();
     setCommentError((prev) => ({ ...prev, [postId]: null }));
-    fetch(`https://codeatlas1.onrender.com/posts/${postId}/comments`, {
+    fetch(getApiUrl(`/api/posts/${postId}/comments`), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",

@@ -314,37 +314,56 @@ const ProjectsSection = () => {
   const renderTeamList = () => (
     <div className="team-list">
       <div className="team-list-header">
-        <h3>Available Teams</h3>
+        <div className="header-content">
+          <div className="header-icon">👥</div>
+          <div>
+            <h2>Team Collaboration</h2>
+            <p>Create or join teams to collaborate on projects</p>
+          </div>
+        </div>
         <button
-          className="create-team-btn"
+          className="create-team-btn modern-btn primary"
           onClick={() => setShowCreateTeam(true)}
         >
-          + Create Team
+          <span className="btn-icon">✨</span>
+          Create New Team
         </button>
       </div>
 
       {showCreateTeam && (
-        <div className="create-team-form">
-          <input
-            type="text"
-            placeholder="Team Name"
-            value={newTeamName}
-            onChange={(e) => setNewTeamName(e.target.value)}
-            className="team-input"
-          />
-          <textarea
-            placeholder="Team Description"
-            value={newTeamDescription}
-            onChange={(e) => setNewTeamDescription(e.target.value)}
-            className="team-textarea"
-          />
+        <div className="create-team-form modern-form">
+          <div className="form-header">
+            <h3>🚀 Create New Team</h3>
+            <p>Set up a collaborative workspace for your team</p>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Team Name</label>
+            <input
+              type="text"
+              placeholder="Enter team name..."
+              value={newTeamName}
+              onChange={(e) => setNewTeamName(e.target.value)}
+              className="modern-input"
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Description</label>
+            <textarea
+              placeholder="Describe your team's purpose and goals..."
+              value={newTeamDescription}
+              onChange={(e) => setNewTeamDescription(e.target.value)}
+              className="modern-textarea"
+              rows="3"
+            />
+          </div>
           <div className="form-actions">
-            <button onClick={createTeam} className="btn-primary">
-              Create
+            <button onClick={createTeam} className="modern-btn primary">
+              <span className="btn-icon">🎯</span>
+              Create Team
             </button>
             <button
               onClick={() => setShowCreateTeam(false)}
-              className="btn-secondary"
+              className="modern-btn secondary"
             >
               Cancel
             </button>
@@ -354,20 +373,57 @@ const ProjectsSection = () => {
 
       <div className="teams-grid">
         {teams.map((team) => (
-          <div key={team.id} className="team-card">
+          <div key={team.id} className="team-card modern-card">
             <div className="team-card-header">
-              <h4>{team.name}</h4>
+              <div className="team-avatar">
+                {team.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="team-info">
+                <h4>{team.name}</h4>
+                <span className="team-status">
+                  {userTeams.has(team.id) ? '✅ Member' : '🔓 Open'}
+                </span>
+              </div>
             </div>
             <p className="team-description">{team.description}</p>
+            <div className="team-stats">
+              <div className="stat-item">
+                <span className="stat-icon">👥</span>
+                <span className="stat-value">5 members</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-icon">📋</span>
+                <span className="stat-value">12 tasks</span>
+              </div>
+            </div>
             <div className="team-card-actions">
               {userTeams.has(team.id) ? (
-                <button onClick={() => setSelectedTeam(team)}>Select</button>
+                <button 
+                  onClick={() => setSelectedTeam(team)}
+                  className="modern-btn primary full-width"
+                >
+                  <span className="btn-icon">🚀</span>
+                  Enter Workspace
+                </button>
               ) : (
-                <button onClick={() => joinTeam(team.id)}>Join Team</button>
+                <button 
+                  onClick={() => joinTeam(team.id)}
+                  className="modern-btn secondary full-width"
+                >
+                  <span className="btn-icon">🤝</span>
+                  Join Team
+                </button>
               )}
             </div>
           </div>
         ))}
+        {teams.length === 0 && (
+          <div className="empty-state">
+            <div className="empty-icon">🏢</div>
+            <h3>No Teams Yet</h3>
+            <p>Create the first team to start collaborating</p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -382,48 +438,75 @@ const ProjectsSection = () => {
       </div>
 
       {showAddTask && (
-        <div className="add-task-form">
-          <input
-            type="text"
-            placeholder="Task Title"
-            value={newTaskTitle}
-            onChange={(e) => setNewTaskTitle(e.target.value)}
-            className="task-input"
-          />
-          <textarea
-            placeholder="Task Description"
-            value={newTaskDescription}
-            onChange={(e) => setNewTaskDescription(e.target.value)}
-            className="task-textarea"
-          />
-          <select
-            value={newTaskAssignee}
-            onChange={(e) => setNewTaskAssignee(e.target.value)}
-            className="task-select"
-          >
-            <option value="">Select Assignee</option>
-            {teamMembers.map((member) => (
-              <option key={member.username} value={member.username}>
-                {member.username}
-              </option>
-            ))}
-          </select>
-          <select
-            value={newTaskPriority}
-            onChange={(e) => setNewTaskPriority(e.target.value)}
-            className="task-select"
-          >
-            <option value="low">Low Priority</option>
-            <option value="medium">Medium Priority</option>
-            <option value="high">High Priority</option>
-          </select>
+        <div className="add-task-form modern-form">
+          <div className="form-header">
+            <h3>📝 Create New Task</h3>
+            <button 
+              onClick={() => setShowAddTask(false)}
+              className="close-btn"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="form-grid">
+            <div className="form-group">
+              <label className="form-label">Task Title</label>
+              <input
+                type="text"
+                placeholder="Enter task title..."
+                value={newTaskTitle}
+                onChange={(e) => setNewTaskTitle(e.target.value)}
+                className="modern-input"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Description</label>
+              <textarea
+                placeholder="Describe the task details..."
+                value={newTaskDescription}
+                onChange={(e) => setNewTaskDescription(e.target.value)}
+                className="modern-textarea"
+                rows="3"
+              />
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">Assignee</label>
+                <select
+                  value={newTaskAssignee}
+                  onChange={(e) => setNewTaskAssignee(e.target.value)}
+                  className="modern-select"
+                >
+                  <option value="">👤 Select Assignee</option>
+                  {teamMembers.map((member) => (
+                    <option key={member.username} value={member.username}>
+                      {member.username}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Priority</label>
+                <select
+                  value={newTaskPriority}
+                  onChange={(e) => setNewTaskPriority(e.target.value)}
+                  className="modern-select"
+                >
+                  <option value="low">🟢 Low Priority</option>
+                  <option value="medium">🟡 Medium Priority</option>
+                  <option value="high">🔴 High Priority</option>
+                </select>
+              </div>
+            </div>
+          </div>
           <div className="form-actions">
-            <button onClick={addTask} className="btn-primary">
-              Add Task
+            <button onClick={addTask} className="modern-btn primary">
+              <span className="btn-icon">✅</span>
+              Create Task
             </button>
             <button
               onClick={() => setShowAddTask(false)}
-              className="btn-secondary"
+              className="modern-btn secondary"
             >
               Cancel
             </button>
@@ -445,16 +528,26 @@ const ProjectsSection = () => {
             </div>
             <div className="kanban-tasks">
               {tasks[columnKey].map((task) => (
-                <div key={task.id} className="kanban-task" draggable>
+                <div key={task.id} className="kanban-task modern-task" draggable>
                   <div className="task-header">
-                    <span className="task-title">{task.title}</span>
-                    <span className={`task-priority ${task.priority}`}>
-                      {task.priority}
-                    </span>
+                    <div className="task-title-group">
+                      <span className="task-title">{task.title}</span>
+                      <span className={`task-priority priority-${task.priority}`}>
+                        {task.priority === 'high' ? '🔴' : task.priority === 'medium' ? '🟡' : '🟢'}
+                        {task.priority}
+                      </span>
+                    </div>
                   </div>
                   <p className="task-description">{task.description}</p>
                   <div className="task-footer">
-                    <span className="task-assignee">{task.assignee}</span>
+                    <div className="task-assignee-group">
+                      {task.assignee && (
+                        <div className="assignee-avatar">
+                          {task.assignee.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <span className="task-assignee">{task.assignee || 'Unassigned'}</span>
+                    </div>
                     <div className="task-actions">
                       {columnKey !== "done" && (
                         <button
@@ -467,11 +560,20 @@ const ProjectsSection = () => {
                             }[columnKey];
                             moveTask(task.id, columnKey, nextColumn);
                           }}
+                          title={`Move to ${{
+                            todo: "In Progress",
+                            inProgress: "Review",
+                            review: "Done",
+                          }[columnKey]}`}
                         >
-                          →
+                          <span className="move-icon">→</span>
                         </button>
                       )}
                     </div>
+                  </div>
+                  <div className="task-meta">
+                    <span className="task-created">Created by {task.createdBy}</span>
+                    <span className="task-date">{new Date(task.createdAt).toLocaleDateString()}</span>
                   </div>
                 </div>
               ))}

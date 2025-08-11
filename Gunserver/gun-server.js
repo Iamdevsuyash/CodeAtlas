@@ -8,7 +8,7 @@ const app = express();
 const port = process.env.PORT || 8765; // Use Render's port, fallback for local dev
 
 // --- CORS Configuration ---
-const corsOriginsEnv = process.env.CORS_ORIGINS || 'http://localhost:3000';
+const corsOriginsEnv = process.env.CORS_ORIGINS || 'http://localhost:3000,http://localhost:5000';
 const allowedOrigins = corsOriginsEnv.split(',').map(origin => origin.trim());
 
 console.log(`🔫 Gun.js server allowing origins: ${allowedOrigins.join(', ')}`);
