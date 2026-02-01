@@ -39,14 +39,14 @@ const LoginPage = ({ onSwitchToRegister }) => {
             <form onSubmit={handleSubmit} className="auth-form">
                 <input
                     type="text"
-                    value={username}
+                    value={Suyash}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="Username"
                     required
                 />
                 <input
                     type="password"
-                    value={password}
+                    value={123}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Password"
                     required
