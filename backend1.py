@@ -33,7 +33,7 @@ database_url = os.getenv('DATABASE_URL')
 if database_url and database_url.startswith('postgres://'):
     # Fix for newer SQLAlchemy versions that require postgresql:// instead of postgres://
     database_url = database_url.replace('postgres://', 'postgresql://', 1)
-app.config['SQLALCHEMY_DATABASE_URI'] = database_url or f"sqlite:///tmp/ideas.db"
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url or f"sqlite:///{os.path.join(app.instance_path, 'ideas.db')}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 # CORS configuration: read from env CORS_ORIGINS (comma-separated) or use sensible defaults
