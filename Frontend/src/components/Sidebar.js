@@ -1,10 +1,7 @@
 import React from "react";
-import { useAuth } from "../context/AuthContext";
 import "./Sidebar.css";
 
 const Sidebar = ({ activeSection, setActiveSection }) => {
-  const { user } = useAuth();
-
   const handleTabClick = (section) => {
     setActiveSection(section);
   };
@@ -12,7 +9,7 @@ const Sidebar = ({ activeSection, setActiveSection }) => {
   return (
     <div className="sidebar">
       <div className="sidebar-header">
-        {user ? `WELCOME, ${user.username.toUpperCase()}` : "CodeAtlas"}
+        CodeAtlas
       </div>
       <div className="sidebar-tabs">
         <div

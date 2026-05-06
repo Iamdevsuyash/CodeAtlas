@@ -1,8 +1,6 @@
 import React from 'react';
-import { useAuth } from '../context/AuthContext';
 
 const Header = () => {
-    const { user, logout } = useAuth();
     return (
         <div className="title-bar">
             <div className="app-logo">
@@ -13,8 +11,7 @@ const Header = () => {
                 </div>
             </div>
             <div className="header-actions">
-                <div className="user-display">{user.username.toUpperCase()}</div>
-                <button onClick={logout} className="logout-button">Logout</button>
+                <div className="user-display">OPEN WORKSPACE</div>
             </div>
         </div>
     );

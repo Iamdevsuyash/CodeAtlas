@@ -1,6 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { getApiUrl } from "../config/api";
 import DependencyGraph from "./DependencyGraph";
+
+const extractRepoInfo = (url) => {
+  const match = url.match(/github\.com\/([^/]+)\/([^/]+)/);
+  if (match) {
+    return {
+      owner: match[1],
+      name: match[2],
+      fullName: `${match[1]}/${match[2]}`,
+    };
+  }
+  return null;
+};
 
 const AnalyzerSection = ({ selectedRepo }) => {
   const [repoUrl, setRepoUrl] = useState("");
@@ -12,12 +24,31 @@ const AnalyzerSection = ({ selectedRepo }) => {
   const [animateCards, setAnimateCards] = useState(false);
   const [fileStructure, setFileStructure] = useState(null);
 
-  const handleAnalyzeRepo = (e) => {
-    e.preventDefault();
-    startAnalysis(repoUrl);
-  };
+  const fetchRepoStructure = useCallback(async (owner, repo) => {
+    try {
+      // Fetch repository tree from GitHub API
+      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/HEAD?recursive=1`);
+      
+      if (!response.ok) {
+        console.warn('Failed to fetch repository structure from GitHub API');
+        return;
+      }
+      
+      const data = await response.json();
+      
+      // Extract file paths from the tree
+      const filePaths = data.tree
+        .filter(item => item.type === 'blob') // Only files, not directories
+        .map(item => item.path)
+        .join('\n');
+      
+      setFileStructure(filePaths);
+    } catch (error) {
+      console.warn('Error fetching repository structure:', error);
+    }
+  }, []);
 
-  const startAnalysis = (url) => {
+  const startAnalysis = useCallback((url) => {
     if (!url) return;
     setLoading(true);
     setError(null);
@@ -52,6 +83,11 @@ const AnalyzerSection = ({ selectedRepo }) => {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
+  }, [fetchRepoStructure]);
+
+  const handleAnalyzeRepo = (e) => {
+    e.preventDefault();
+    startAnalysis(repoUrl);
   };
 
   useEffect(() => {
@@ -59,7 +95,7 @@ const AnalyzerSection = ({ selectedRepo }) => {
       setRepoUrl(selectedRepo.url);
       startAnalysis(selectedRepo.url);
     }
-  }, [selectedRepo]);
+  }, [selectedRepo, startAnalysis]);
 
   useEffect(() => {
     if (analysis) {
@@ -68,42 +104,6 @@ const AnalyzerSection = ({ selectedRepo }) => {
       return () => clearTimeout(timer);
     }
   }, [analysis]);
-
-  const extractRepoInfo = (url) => {
-    const match = url.match(/github\.com\/([^/]+)\/([^/]+)/);
-    if (match) {
-      return {
-        owner: match[1],
-        name: match[2],
-        fullName: `${match[1]}/${match[2]}`,
-      };
-    }
-    return null;
-  };
-
-  const fetchRepoStructure = async (owner, repo) => {
-    try {
-      // Fetch repository tree from GitHub API
-      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/HEAD?recursive=1`);
-      
-      if (!response.ok) {
-        console.warn('Failed to fetch repository structure from GitHub API');
-        return;
-      }
-      
-      const data = await response.json();
-      
-      // Extract file paths from the tree
-      const filePaths = data.tree
-        .filter(item => item.type === 'blob') // Only files, not directories
-        .map(item => item.path)
-        .join('\n');
-      
-      setFileStructure(filePaths);
-    } catch (error) {
-      console.warn('Error fetching repository structure:', error);
-    }
-  };
 
   const parseStructureAnalysis = (htmlContent) => {
     if (!htmlContent) return null;

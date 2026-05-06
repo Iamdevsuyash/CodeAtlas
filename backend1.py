@@ -115,15 +115,16 @@ def load_user(user_id):
 # Securely load API keys
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+model = None
 
-if not GITHUB_TOKEN or not GEMINI_API_KEY:
-    raise ValueError("🔴 Critical Error: GITHUB_TOKEN or GEMINI_API_KEY not found in .env file.")
-
-try:
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel("gemini-2.5-pro")
-except Exception as e:
-    raise RuntimeError(f"🔴 Error configuring Gemini AI: {e}")
+if GEMINI_API_KEY:
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+        model = genai.GenerativeModel("gemini-2.5-pro")
+    except Exception as e:
+        print(f"🔴 Error configuring Gemini AI: {e}")
+else:
+    print("⚠️ GEMINI_API_KEY is not set. /api/analyze will return a setup error.")
 
 # --- Helper Functions ---
 def parse_github_url(url):
@@ -135,7 +136,9 @@ def parse_github_url(url):
 
 def get_github_readme(owner, repo_name):
     url = f"https://api.github.com/repos/{owner}/{repo_name}/readme"
-    headers = {"Authorization": f"Bearer {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    if GITHUB_TOKEN:
+        headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
     try:
         response = requests.get(url, headers=headers, timeout=15)
         response.raise_for_status()
@@ -147,6 +150,8 @@ def get_github_readme(owner, repo_name):
         return None, f"An unexpected error occurred: {e}"
 
 def summarize_readme_with_gemini(readme_content):
+    if not model:
+        return None, "GEMINI_API_KEY is not configured on the backend."
     if not readme_content:
         return None, "README content is empty."
     prompt = f"Summarize the following README in concise bullet points. Include:\n- Main project purpose (1 bullet)\n- 2-4 key features (bullets)\n- Main technologies (bullets)\nIf there are any code examples, show the most important one as a code snippet.\nFormat your response in Markdown.\n---\n{readme_content}"
@@ -159,7 +164,9 @@ def summarize_readme_with_gemini(readme_content):
 
 def get_github_file_structure(owner, repo_name):
     repo_url = f"https://api.github.com/repos/{owner}/{repo_name}"
-    headers = {"Authorization": f"Bearer {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    if GITHUB_TOKEN:
+        headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
     try:
         repo_info = requests.get(repo_url, headers=headers, timeout=10)
         repo_info.raise_for_status()
@@ -173,6 +180,8 @@ def get_github_file_structure(owner, repo_name):
         return None, f"Could not fetch file structure: {e}"
 
 def analyze_structure_with_gemini(file_structure):
+    if not model:
+        return None, "GEMINI_API_KEY is not configured on the backend."
     if not file_structure:
         return None, "File structure is empty."
     prompt = f"Based only on the file structure below, provide:\n- Project type and likely architecture (1 bullet)\n- 2-4 main components or folders (bullets)\n- Any special scripts or config files (bullets)\nIf you see a main entry point or config, show a code snippet of its filename.\nFormat your response in Markdown.\n---\n{file_structure}"
@@ -183,6 +192,8 @@ def analyze_structure_with_gemini(file_structure):
         return None, f"Error generating analysis: {e}"
 
 def get_setup_guide_with_gemini(readme, file_structure):
+    if not model:
+        return None, "GEMINI_API_KEY is not configured on the backend."
     prompt = f"Write a brief, step-by-step setup guide for this project as bullet points.\n- List required tools\n- Show install commands as code snippets\n- Show run/test commands as code snippets\n- Mention any .env or config setup if needed\nFormat your response in Markdown.\n---README---\n{readme}\n---FILE STRUCTURE---\n{file_structure}"
     try:
         response = model.generate_content(prompt)
@@ -254,7 +265,6 @@ def health_check():
 
 # --- API Hub Routes ---
 @app.route('/api/apihub/categories', methods=['GET'])
-@login_required
 def get_api_categories():
     try:
         response = requests.get('https://api.publicapis.org/categories')
@@ -264,7 +274,6 @@ def get_api_categories():
         return jsonify({"error": f"Failed to fetch API categories: {e}"}), 500
 
 @app.route('/api/apihub/entries', methods=['GET'])
-@login_required
 def get_api_entries():
     category = request.args.get('category')
     if not category:
@@ -318,7 +327,9 @@ def analyze_repo_route():
 @app.route('/api/trending', methods=['GET'])
 def trending_repos_route():
     search_query = request.args.get('search_query', default=None, type=str)
-    headers = {"Authorization": f"Bearer {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    if GITHUB_TOKEN:
+        headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
     q = [f"{search_query}"] if search_query else []
     q.append(f"created:>{(datetime.utcnow() - timedelta(days=730)).strftime('%Y-%m-%d')}")
     query = '+'.join(q)
@@ -375,7 +386,6 @@ def create_sample_posts():
         return jsonify({"error": f"Failed to create sample posts: {e}"}), 500
 
 @app.route('/api/posts', methods=['POST'])
-@login_required
 def add_post():
     data = request.get_json()
     repo_name = data.get('repo_name')
@@ -406,7 +416,6 @@ def get_comments(post_id):
     ])
 
 @app.route('/api/posts/<int:post_id>/comments', methods=['POST'])
-@login_required
 def add_comment(post_id):
     post = Post.query.get_or_404(post_id)
     data = request.get_json()

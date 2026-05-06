@@ -1,10 +1,22 @@
 import React, { useState, useEffect, useRef } from "react";
 import Gun from "gun";
-import { useAuth } from "../context/AuthContext";
 import { getGunUrl } from "../config/api";
 
+const getParticipantName = () => {
+  try {
+    const existingName = localStorage.getItem("codeatlasParticipantName");
+    if (existingName) return existingName;
+
+    const newName = `Guest-${Math.random().toString(36).slice(2, 8)}`;
+    localStorage.setItem("codeatlasParticipantName", newName);
+    return newName;
+  } catch {
+    return "Guest";
+  }
+};
+
 const ProjectsSection = () => {
-  const { user } = useAuth();
+  const [participantName] = useState(getParticipantName);
   const [activeTab, setActiveTab] = useState("kanban");
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [teams, setTeams] = useState([]);
@@ -29,7 +41,6 @@ const ProjectsSection = () => {
   const [onlineMembers, setOnlineMembers] = useState(new Set());
 
   const gunRef = useRef(null);
-  const chatRef = useRef(null);
   const messagesEndRef = useRef(null);
 
   // Initialize Gun.js
@@ -62,30 +73,25 @@ const ProjectsSection = () => {
       }
     });
 
-    // 2. Load the current user's list of teams (requires user)
-    if (user?.username) {
-      const userTeamsNode = gunRef.current.get('users').get(user.username).get('teams');
-      userTeamsNode.map().on((isMember, teamId) => {
-        setUserTeams(prev => {
-          const newSet = new Set(prev);
-          isMember ? newSet.add(teamId) : newSet.delete(teamId);
-          return newSet;
-        });
+    const userTeamsNode = gunRef.current.get('users').get(participantName).get('teams');
+    userTeamsNode.map().on((isMember, teamId) => {
+      setUserTeams(prev => {
+        const newSet = new Set(prev);
+        isMember ? newSet.add(teamId) : newSet.delete(teamId);
+        return newSet;
       });
-    }
+    });
 
     // Cleanup listeners on unmount
     return () => {
       teamsNode.off();
-      if (user?.username) {
-        gunRef.current.get('users').get(user.username).get('teams').off();
-      }
+      userTeamsNode.off();
     };
-  }, [user?.username]); // Rerun only when the user changes
+  }, [participantName]);
 
   // Effect for handling all data loading and real-time updates when a team is selected.
   useEffect(() => {
-    if (!selectedTeam || !gunRef.current || !user) {
+    if (!selectedTeam || !gunRef.current) {
       return;
     }
 
@@ -141,7 +147,7 @@ const ProjectsSection = () => {
     });
 
     // 4. Presence System
-    presence.get(user.username).put({ online: true, lastSeen: Date.now() });
+    presence.get(participantName).put({ online: true, lastSeen: Date.now() });
     presence.map().on((memberData, username) => {
       setOnlineMembers(prev => {
         const newSet = new Set(prev);
@@ -161,11 +167,9 @@ const ProjectsSection = () => {
       membersNode.off();
       tasksNode.off();
       presence.off();
-      if (user) {
-        presence.get(user.username).put({ online: false, lastSeen: Date.now() });
-      }
+      presence.get(participantName).put({ online: false, lastSeen: Date.now() });
     };
-  }, [selectedTeam, user]);
+  }, [selectedTeam, participantName]);
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -179,7 +183,7 @@ const ProjectsSection = () => {
     const newTeamData = {
       name: newTeamName,
       description: newTeamDescription,
-      createdBy: user.username,
+      createdBy: participantName,
       createdAt: Date.now(),
     };
 
@@ -192,15 +196,15 @@ const ProjectsSection = () => {
 
       // Add creator as first member
       const memberData = {
-        username: user.username,
+        username: participantName,
         role: "Team Lead",
-        avatar: user.username.charAt(0).toUpperCase(),
+        avatar: participantName.charAt(0).toUpperCase(),
         joinedAt: Date.now(),
       };
-      gunRef.current.get(`members_${teamId}`).get(user.username).put(memberData);
+      gunRef.current.get(`members_${teamId}`).get(participantName).put(memberData);
 
       // Also add the new team to the creator's list of teams
-      gunRef.current.get('users').get(user.username).get('teams').get(teamId).put(true);
+      gunRef.current.get('users').get(participantName).get('teams').get(teamId).put(true);
 
       console.log('Team created successfully:', teamId);
       setNewTeamName("");
@@ -214,9 +218,9 @@ const ProjectsSection = () => {
 
     const message = {
       text: newMessage,
-      author: user?.username || "Anonymous",
+      author: participantName,
       timestamp: Date.now(),
-      avatar: (user?.username || "A").charAt(0).toUpperCase(),
+      avatar: participantName.charAt(0).toUpperCase(),
     };
 
     console.log("Sending message:", message);
@@ -245,7 +249,7 @@ const ProjectsSection = () => {
       assignee: newTaskAssignee,
       priority: newTaskPriority,
       createdAt: Date.now(),
-      createdBy: user?.username || "Anonymous",
+      createdBy: participantName,
       status: 'todo' // Default status
     };
 
@@ -276,27 +280,27 @@ const ProjectsSection = () => {
     };
 
     setTasks(updatedTasks);
-    localStorage.setItem(
-      `tasks_${selectedTeam.id}`,
-      JSON.stringify(updatedTasks)
-    );
+    gunRef.current?.get(`tasks_${selectedTeam.id}`).get(taskId).put({
+      ...task,
+      status: toColumn,
+    });
   };
 
   const joinTeam = (teamId) => {
-    if (!user || !gunRef.current) return;
+    if (!gunRef.current) return;
 
     const memberData = {
-      username: user.username,
+      username: participantName,
       role: "Member",
-      avatar: (user.username || "A").charAt(0).toUpperCase(),
+      avatar: participantName.charAt(0).toUpperCase(),
       joinedAt: Date.now(),
     };
 
     // Add the user to the team's members list
-    gunRef.current.get(`members_${teamId}`).get(user.username).put(memberData);
+    gunRef.current.get(`members_${teamId}`).get(participantName).put(memberData);
 
     // Add the team to the user's list of teams
-    gunRef.current.get('users').get(user.username).get('teams').get(teamId).put(true, (ack) => {
+    gunRef.current.get('users').get(participantName).get('teams').get(teamId).put(true, (ack) => {
        if (ack.err) {
         console.error(`Error adding team to user's list:`, ack.err);
         return;
@@ -305,7 +309,7 @@ const ProjectsSection = () => {
       // After joining, find the full team object and select it
       gunRef.current.get('teams').get(teamId).once(teamData => {
           if(teamData) {
-              setSelectedTeam(teamData);
+              setSelectedTeam({ ...teamData, id: teamId });
           }
       });
     });

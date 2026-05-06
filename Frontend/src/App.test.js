@@ -1,8 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import App from './App';
 
-test('renders learn react link', () => {
+jest.mock('./components/DependencyGraph', () => () => null);
+
+test('renders CodeAtlas workspace', () => {
   render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+  expect(screen.getAllByText(/CodeAtlas/i).length).toBeGreaterThan(0);
 });
