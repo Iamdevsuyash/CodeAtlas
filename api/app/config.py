@@ -3,6 +3,7 @@
 Settings for the code-intelligence stack: Qdrant (vector store),
 sentence-transformers (local embeddings), and Gemini (LLM reasoning, via the
 google-genai SDK). Extend the Settings class below as new services are wired in.
+
 """
 
 from functools import lru_cache
