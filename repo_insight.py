@@ -108,8 +108,18 @@ class GitHubClient:
         if token:
             self.headers["Authorization"] = f"Bearer {token}"
 
+    def get(self, url, params=None, timeout=15):
+        r = self.http.get(url, headers=self.headers, params=params, timeout=timeout)
+        if r.status_code == 401 and "Authorization" in self.headers:
+            # Expired/revoked GITHUB_TOKEN: fall back to anonymous access instead of failing
+            # every request (public repos still work, at the lower 60 req/h limit).
+            print("⚠️ GITHUB_TOKEN was rejected (401); continuing without it. Rotate the token.")
+            self.headers.pop("Authorization")
+            r = self.http.get(url, headers=self.headers, params=params, timeout=timeout)
+        return r
+
     def _get_json(self, url, timeout=15):
-        r = self.http.get(url, headers=self.headers, timeout=timeout)
+        r = self.get(url, timeout=timeout)
         if r.status_code == 404:
             raise RepoError("Repository not found (or it is private).", 404)
         if r.status_code in (403, 429) and r.headers.get("X-RateLimit-Remaining") == "0":

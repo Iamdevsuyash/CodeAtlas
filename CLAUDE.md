@@ -65,7 +65,7 @@ SQLAlchemy models: `User` (Flask-Login, password hashed via Werkzeug), `Post` (a
 
 ## Environment variables
 
-Backend: `GITHUB_TOKEN`, `GEMINI_API_KEYS` (comma-separated; legacy `GEMINI_API_KEY` is also read), optional `GEMINI_MODELS` / `GEMINI_THINKING_LEVEL`, `DATABASE_URL`, `SECRET_KEY`, `CORS_ORIGINS` (comma-separated), `FLASK_ENV` (`production` disables debug), `PORT`.
+Backend: `GITHUB_TOKEN`, `GEMINI_API_KEYS` (comma-separated; legacy `GEMINI_API_KEY` is also read), optional `GEMINI_MODELS` / `GEMINI_THINKING_LEVEL`, `DATABASE_URL`, `SECRET_KEY`, `CORS_ORIGINS` (comma-separated), `FLASK_ENV` (`production` disables the sample-posts seeding route), `FLASK_DEBUG=1` (opt-in debug server; never on public hosts), `PORT`.
 Frontend (build-time): `REACT_APP_API_URL`. Relay: `CORS_ORIGINS`, `PORT`, `NODE_ENV`.
 
 Deployment specifics live in `DEPLOYMENT.md` and `render.yaml`; `gun-sync-diagnostic.js` / `test-gun-local.js` are ad-hoc Gun connectivity probes.

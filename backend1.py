@@ -1,7 +1,6 @@
 
 import os
 import sys
-import requests
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -11,6 +10,8 @@ from markdown import markdown
 import traceback
 from datetime import datetime, timedelta
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 
@@ -40,6 +41,8 @@ if database_url and database_url.startswith('postgres://'):
     database_url = database_url.replace('postgres://', 'postgresql://', 1)
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url or f"sqlite:///{os.path.join(app.instance_path, 'ideas.db')}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# Managed Postgres drops idle SSL connections; test each pooled connection before use.
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True, 'pool_recycle': 280}
 db = SQLAlchemy(app)
 # CORS configuration: read from env CORS_ORIGINS (comma-separated) or use sensible defaults
 
@@ -75,9 +78,16 @@ def init_database():
         return False
 
 
+@app.errorhandler(OperationalError)
+def handle_db_unavailable(e):
+    db.session.rollback()
+    print(f"🔴 Database unavailable: {e}")
+    return jsonify({"error": "Database is temporarily unavailable. Please try again shortly."}), 503
+
 # Global error handler to ensure CORS headers are always applied
 @app.errorhandler(500)
 def handle_500_error(e):
+    traceback.print_exc()
     response = jsonify({"error": "Internal server error"})
     response.status_code = 500
     return response
@@ -284,10 +294,16 @@ def status():
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
+    try:
+        db.session.execute(text("SELECT 1"))
+        database = "connected"
+    except Exception as e:
+        db.session.rollback()
+        database = f"error: {type(e).__name__}"
     return jsonify({
         "status": "OK",
         "timestamp": datetime.utcnow().isoformat(),
-        "database": "connected" if db.engine else "disconnected"
+        "database": database,
     })
 
 # --- API Routes ---
@@ -361,16 +377,12 @@ def ai_status():
 @app.route('/api/trending', methods=['GET'])
 def trending_repos_route():
     search_query = request.args.get('search_query', default=None, type=str)
-    headers = {"Accept": "application/vnd.github.v3+json"}
-    if GITHUB_TOKEN:
-        headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
     q = [search_query] if search_query else []
     q.append(f"created:>{(datetime.utcnow() - timedelta(days=730)).strftime('%Y-%m-%d')}")
     params = {"q": " ".join(q), "sort": "stars", "order": "desc", "per_page": 12}
 
     try:
-        resp = requests.get("https://api.github.com/search/repositories", params=params,
-                            headers=headers, timeout=15)
+        resp = github.get("https://api.github.com/search/repositories", params=params)
         resp.raise_for_status()
         items = resp.json().get('items', [])
         result = [{
@@ -539,6 +551,7 @@ if __name__ == '__main__':
             print("📝 Note: Using temporary SQLite database in /tmp/")
     
     port = int(os.getenv('PORT', 5000))
-    debug = os.getenv('FLASK_ENV') != 'production'
+    # Opt-in only: the Werkzeug debugger must never be reachable on a public host.
+    debug = os.getenv('FLASK_DEBUG') == '1'
     print(f"🚀 Starting CodeAtlas backend on port {port}")
     app.run(host="0.0.0.0", port=port, debug=debug)

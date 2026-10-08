@@ -102,6 +102,17 @@ class ApiTests(unittest.TestCase):
             r = self.c.post("/api/analyze", json={"repo_url": "https://github.com/u/nope"})
         self.assertEqual(r.status_code, 404)
 
+    def test_db_outage_returns_json_503(self):
+        from sqlalchemy.exc import OperationalError
+        with backend1.app.app_context(), mock.patch.object(backend1.Discussion, "query") as q:
+            q.order_by.side_effect = OperationalError("SELECT", {}, Exception("SSL closed"))
+            r = self.c.get("/api/discussions")
+        self.assertEqual(r.status_code, 503)
+        self.assertIn("temporarily unavailable", r.json["error"])
+
+    def test_health_pings_database(self):
+        self.assertEqual(self.c.get("/api/health").json["database"], "connected")
+
     def test_ai_status_masks_keys(self):
         body = self.c.get("/api/ai/status").get_data(as_text=True)
         self.assertNotIn("test-key-1", body)

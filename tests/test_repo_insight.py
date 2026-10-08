@@ -129,6 +129,27 @@ class CondenseTests(unittest.TestCase):
         self.assertIn("index.tsx", out)
 
 
+class GitHubClientTests(unittest.TestCase):
+    def test_rejected_token_falls_back_to_anonymous(self):
+        class Resp:
+            def __init__(self, code):
+                self.status_code, self.headers = code, {}
+
+        class Session:
+            def __init__(self):
+                self.auth_seen = []
+
+            def get(self, url, headers, params, timeout):
+                self.auth_seen.append("Authorization" in headers)
+                return Resp(401 if "Authorization" in headers else 200)
+
+        sess = Session()
+        gh = ri.GitHubClient("expired-token", session=sess)
+        self.assertEqual(gh.get("https://api.github.com/x").status_code, 200)
+        self.assertEqual(gh.get("https://api.github.com/y").status_code, 200)
+        self.assertEqual(sess.auth_seen, [True, False, False])  # token dropped after first 401
+
+
 class CollectTests(unittest.TestCase):
     """collect() against a fake GitHub client - no network."""
 
