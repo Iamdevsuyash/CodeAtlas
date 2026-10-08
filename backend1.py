@@ -1,12 +1,12 @@
 
 import os
-import re
+import sys
 import requests
-import base64
-import google.generativeai as genai
-from flask import Flask, request, jsonify, session, make_response
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
+from gemini_pool import GeminiPool, GeminiError, TTLCache
+import repo_insight
 from markdown import markdown
 import traceback
 from datetime import datetime, timedelta
@@ -14,6 +14,11 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 
+
+# The emoji log lines crash on Windows consoles/redirects (cp1252) - force UTF-8.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
 
 # --- Step 1: Load API Keys & Configure ---
 load_dotenv()
@@ -69,8 +74,6 @@ def init_database():
         print(f"❌ Database initialization failed: {e}")
         return False
 
-# Call database initialization immediately
-init_database()
 
 # Global error handler to ensure CORS headers are always applied
 @app.errorhandler(500)
@@ -108,105 +111,129 @@ class Comment(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
 
+class Discussion(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    author = db.Column(db.String(100), nullable=False, default='Anonymous')
+    title = db.Column(db.String(300), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    likes = db.Column(db.Integer, nullable=False, default=0)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    replies = db.relationship('DiscussionReply', backref='discussion', lazy=True,
+                              cascade="all, delete-orphan", order_by='DiscussionReply.timestamp')
+
+    def to_dict(self):
+        return {'id': self.id, 'author': self.author, 'title': self.title, 'content': self.content,
+                'likes': self.likes, 'timestamp': self.timestamp.isoformat() + 'Z',
+                'replies': [r.to_dict() for r in self.replies]}
+
+
+class DiscussionReply(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    author = db.Column(db.String(100), nullable=False, default='Anonymous')
+    content = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    discussion_id = db.Column(db.Integer, db.ForeignKey('discussion.id'), nullable=False)
+
+    def to_dict(self):
+        return {'id': self.id, 'author': self.author, 'content': self.content,
+                'timestamp': self.timestamp.isoformat() + 'Z'}
+
+
+# Tables must be created after every model is defined.
+init_database()
+
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 # Securely load API keys
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
-model = None
-
-if GEMINI_API_KEY:
-    try:
-        genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel("gemini-3-flash-preview")
-    except Exception as e:
-        print(f"🔴 Error configuring Gemini AI: {e}")
+# Multi-key Gemini pool: GEMINI_API_KEYS="k1,k2,..." (GEMINI_API_KEY still works).
+gemini = GeminiPool.from_env(os.environ)
+github = repo_insight.GitHubClient(GITHUB_TOKEN)
+# Finished analyses by owner/repo: repeat requests skip GitHub and Gemini entirely.
+analysis_cache = TTLCache(max_items=200, ttl=30 * 60)
+if gemini.configured:
+    print(f"🤖 Gemini pool ready: {len(gemini.status()['keys'])} key(s), models={gemini.models}")
 else:
-    print("⚠️ GEMINI_API_KEY is not set. /api/analyze will return a setup error.")
+    print("⚠️ GEMINI_API_KEYS is not set. /api/analyze will return a setup error.")
 
 # --- Helper Functions ---
-def parse_github_url(url):
-    pattern = r"https://github\.com/([^/]+)/([^/]+)"
-    match = re.search(pattern, url)
-    if match:
-        return match.group(1), match.group(2).strip()
-    return None, None
+parse_github_url = repo_insight.parse_github_url
 
-def get_github_readme(owner, repo_name):
-    url = f"https://api.github.com/repos/{owner}/{repo_name}/readme"
-    headers = {"Accept": "application/vnd.github.v3+json"}
-    if GITHUB_TOKEN:
-        headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
-    try:
-        response = requests.get(url, headers=headers, timeout=15)
-        response.raise_for_status()
-        content = base64.b64decode(response.json()['content']).decode('utf-8')
-        return content, None
-    except requests.exceptions.HTTPError as err:
-        return None, f"Could not fetch README. (HTTP Error: {err.response.status_code})"
-    except Exception as e:
-        return None, f"An unexpected error occurred: {e}"
-
-def summarize_readme_with_gemini(readme_content):
-    if not model:
-        return None, "GEMINI_API_KEY is not configured on the backend."
-    if not readme_content:
-        return None, "README content is empty."
-    prompt = f"Summarize the following README in concise bullet points. Include:\n- Main project purpose (1 bullet)\n- 2-4 key features (bullets)\n- Main technologies (bullets)\nIf there are any code examples, show the most important one as a code snippet.\nFormat your response in Markdown.\n---\n{readme_content}"
-    try:
-        response = model.generate_content(prompt)
-        return markdown(response.text), None
-    except Exception as e:
-        return None, f"Error generating summary: {e}"
+_SECTIONS = {
+    "purpose": {"type": "STRING", "description": "One sentence: what the project does and for whom."},
+    "category": {"type": "STRING", "description": "Short label, e.g. 'Web framework', 'CLI tool', 'ML library'."},
+    "tech_stack": {"type": "ARRAY", "items": {"type": "STRING"}},
+    "readme_summary_md": {"type": "STRING"},
+    "structure_md": {"type": "STRING"},
+    "setup_md": {"type": "STRING"},
+}
+ANALYSIS_SCHEMA = {"type": "OBJECT", "properties": _SECTIONS, "required": list(_SECTIONS)}
+INFERRED_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {**_SECTIONS, "generated_readme_md": {"type": "STRING"}},
+    "required": list(_SECTIONS) + ["generated_readme_md"],
+}
 
 
-def get_github_file_structure(owner, repo_name):
-    repo_url = f"https://api.github.com/repos/{owner}/{repo_name}"
-    headers = {"Accept": "application/vnd.github.v3+json"}
-    if GITHUB_TOKEN:
-        headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
-    try:
-        repo_info = requests.get(repo_url, headers=headers, timeout=10)
-        repo_info.raise_for_status()
-        default_branch = repo_info.json()['default_branch']
-        tree_url = f"https://api.github.com/repos/{owner}/{repo_name}/git/trees/{default_branch}?recursive=1"
-        tree_response = requests.get(tree_url, headers=headers, timeout=15)
-        tree_response.raise_for_status()
-        files = [item['path'] for item in tree_response.json()['tree'] if item['type'] == 'blob']
-        return "\n".join(files[:200]), None
-    except Exception as e:
-        return None, f"Could not fetch file structure: {e}"
+def _repo_header(info):
+    bits = [f"Repository: {info['owner']}/{info['name']}"]
+    for label, key in (("Description", "description"), ("Primary language", "language"),
+                       ("Homepage", "homepage"), ("License", "license")):
+        if info.get(key):
+            bits.append(f"{label}: {info[key]}")
+    if info.get("topics"):
+        bits.append("Topics: " + ", ".join(info["topics"]))
+    bits.append(f"Files: {info['file_count']}")
+    return "\n".join(bits)
 
-def analyze_structure_with_gemini(file_structure):
-    if not model:
-        return None, "GEMINI_API_KEY is not configured on the backend."
-    if not file_structure:
-        return None, "File structure is empty."
-    prompt = f"Based only on the file structure below, provide:\n- Project type and likely architecture (1 bullet)\n- 2-4 main components or folders (bullets)\n- Any special scripts or config files (bullets)\nIf you see a main entry point or config, show a code snippet of its filename.\nFormat your response in Markdown.\n---\n{file_structure}"
-    try:
-        response = model.generate_content(prompt)
-        return markdown(response.text), None
-    except Exception as e:
-        return None, f"Error generating analysis: {e}"
 
-def get_setup_guide_with_gemini(readme, file_structure):
-    if not model:
-        return None, "GEMINI_API_KEY is not configured on the backend."
-    prompt = f"Write a brief, step-by-step setup guide for this project as bullet points.\n- List required tools\n- Show install commands as code snippets\n- Show run/test commands as code snippets\n- Mention any .env or config setup if needed\nFormat your response in Markdown.\n---README---\n{readme}\n---FILE STRUCTURE---\n{file_structure}"
-    try:
-        response = model.generate_content(prompt)
-        return markdown(response.text), None
-    except Exception as e:
-        return None, f"Error generating setup guide: {e}"
+def _snippets_block(info):
+    return "\n\n".join(f"### {s['path']}\n```\n{s['content']}\n```" for s in info["snippets"])
+
+
+def build_analysis_prompt(info):
+    """One prompt that yields every analyzer section (was 3 calls that each resent the README)."""
+    inferred = info["readme_source"] == "generated"
+    rules = (
+        "You are a senior engineer documenting a GitHub repository. Be concise and concrete; "
+        "never invent features you cannot see evidence for. Markdown fields use '-' bullets and "
+        "fenced code blocks for commands.\n"
+        "- readme_summary_md: purpose (1 bullet), 2-4 key features, main technologies; "
+        "include the single most useful code/usage example if one exists.\n"
+        "- structure_md: project type and architecture (1 bullet), 2-4 main components/folders, "
+        "notable scripts or config files, and the main entry point file name.\n"
+        "- setup_md: required tools, install commands, run/test commands, env/config setup.\n"
+    )
+    if inferred:
+        rules += (
+            "- This repository has NO usable README. Infer what it does from the metadata, the "
+            "file tree and the ranked key files (manifests first, then likely entry points). "
+            "readme_summary_md must start with '> Inferred from source code — the repository has "
+            "no README.'\n"
+            "- generated_readme_md: a complete README for the project: '# <name>', one-paragraph "
+            "description, Features, Tech stack, Project structure, Getting started, Usage. Keep it "
+            "under 450 words.\n"
+        )
+    parts = [rules, "## Metadata", _repo_header(info)]
+    if info.get("readme"):
+        parts += ["## README" + (" (short stub)" if inferred else ""), info["readme"]]
+    if info["snippets"]:
+        parts += ["## Key files (condensed: head, imports, signatures)", _snippets_block(info)]
+    parts += ["## File tree (compressed)", info["tree_compact"]]
+    return "\n\n".join(parts), (INFERRED_SCHEMA if inferred else ANALYSIS_SCHEMA)
+
+
+def _md(text):
+    return markdown(text or "", extensions=["fenced_code", "tables"])
 
 
 # --- Auth Routes ---
 @app.route('/api/register', methods=['POST'])
 def register():
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
         if not data:
             return jsonify({"error": "No JSON data provided"}), 400
         
@@ -233,7 +260,7 @@ def register():
 
 @app.route('/api/login', methods=['POST'])
 def login():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     username = data.get('username')
     password = data.get('password')
     user = User.query.filter_by(username=username).first()
@@ -263,32 +290,10 @@ def health_check():
         "database": "connected" if db.engine else "disconnected"
     })
 
-# --- API Hub Routes ---
-@app.route('/api/apihub/categories', methods=['GET'])
-def get_api_categories():
-    try:
-        response = requests.get('https://api.publicapis.org/categories')
-        response.raise_for_status()
-        return jsonify(response.json())
-    except requests.exceptions.RequestException as e:
-        return jsonify({"error": f"Failed to fetch API categories: {e}"}), 500
-
-@app.route('/api/apihub/entries', methods=['GET'])
-def get_api_entries():
-    category = request.args.get('category')
-    if not category:
-        return jsonify({"error": "Category parameter is required"}), 400
-    try:
-        response = requests.get(f'https://api.publicapis.org/entries?category={category}')
-        response.raise_for_status()
-        return jsonify(response.json())
-    except requests.exceptions.RequestException as e:
-        return jsonify({"error": f"Failed to fetch API entries: {e}"}), 500
-
 # --- API Routes ---
 @app.route('/api/analyze', methods=['POST'])
 def analyze_repo_route():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     repo_url = data.get('repo_url')
     if not repo_url:
         return jsonify({"error": "repo_url is required"}), 400
@@ -296,33 +301,62 @@ def analyze_repo_route():
     owner, repo_name = parse_github_url(repo_url)
     if not owner or not repo_name:
         return jsonify({"error": "Invalid GitHub URL"}), 400
+    if not gemini.configured:
+        return jsonify({"error": "GEMINI_API_KEYS is not configured on the backend."}), 503
 
-    readme_content, error = get_github_readme(owner, repo_name)
-    if error:
-        return jsonify({"error": error}), 500
-    
-    readme_summary, error = summarize_readme_with_gemini(readme_content)
-    if error:
-        return jsonify({"error": error}), 500
+    cache_key = f"{owner}/{repo_name}".lower()
+    cached = analysis_cache.get(cache_key)
+    if cached and not data.get('refresh'):
+        return jsonify({**cached, "ai_meta": {**cached["ai_meta"], "cached": True}})
 
-    file_structure, error = get_github_file_structure(owner, repo_name)
-    if error:
-        return jsonify({"error": error}), 500
+    try:
+        info = repo_insight.collect(owner, repo_name, github)
+    except repo_insight.RepoError as e:
+        return jsonify({"error": str(e)}), e.status
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": f"Could not read repository: {e}"}), 500
 
-    structure_analysis, error = analyze_structure_with_gemini(file_structure)
-    if error:
-        return jsonify({"error": error}), 500
-        
-    setup_guide, error = get_setup_guide_with_gemini(readme_content, file_structure)
-    if error:
-        return jsonify({"error": error}), 500
+    prompt, schema = build_analysis_prompt(info)
+    try:
+        result, meta = gemini.generate(prompt, schema=schema, max_output_tokens=8192)
+    except GeminiError as e:
+        return jsonify({"error": f"AI analysis failed: {e}"}), 502
 
-    return jsonify({
-        "readme_summary": readme_summary,
-        "structure_analysis": structure_analysis,
-        "setup_guide": setup_guide,
-        "file_structure": file_structure,
-    })
+    payload = {
+        "readme_summary": _md(result.get("readme_summary_md")),
+        "structure_analysis": _md(result.get("structure_md")),
+        "setup_guide": _md(result.get("setup_md")),
+        "generated_readme": _md(result.get("generated_readme_md")) if result.get("generated_readme_md") else None,
+        "generated_readme_markdown": result.get("generated_readme_md"),
+        "project_overview": {
+            "purpose": result.get("purpose", ""),
+            "category": result.get("category", ""),
+            "tech_stack": result.get("tech_stack", []),
+        },
+        "readme_source": info["readme_source"],
+        "readme_path": info["readme_path"],
+        "key_files": info["key_files"],
+        "repo": {k: info[k] for k in ("owner", "name", "sha", "description", "topics", "language",
+                                      "stars", "license", "file_count")},
+        # Full path list for the dependency graph (the frontend no longer calls GitHub itself).
+        "file_structure": "\n".join(info["paths"][:3000]),
+        "ai_meta": {
+            "model": meta.get("model"),
+            "cached": meta.get("cached", False),
+            "prompt_chars": len(prompt),
+            "tokens": (meta.get("usage") or {}).get("totalTokenCount"),
+        },
+    }
+    analysis_cache.set(cache_key, payload)
+    return jsonify(payload)
+
+
+@app.route('/api/ai/status', methods=['GET'])
+def ai_status():
+    """Key-pool health (keys are masked to their last 4 characters)."""
+    return jsonify(gemini.status())
+
 
 @app.route('/api/trending', methods=['GET'])
 def trending_repos_route():
@@ -330,25 +364,30 @@ def trending_repos_route():
     headers = {"Accept": "application/vnd.github.v3+json"}
     if GITHUB_TOKEN:
         headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
-    q = [f"{search_query}"] if search_query else []
+    q = [search_query] if search_query else []
     q.append(f"created:>{(datetime.utcnow() - timedelta(days=730)).strftime('%Y-%m-%d')}")
-    query = '+'.join(q)
-    url = f"https://api.github.com/search/repositories?q={query}&sort=stars&order=desc&per_page=12"
-    
+    params = {"q": " ".join(q), "sort": "stars", "order": "desc", "per_page": 12}
+
     try:
-        resp = requests.get(url, headers=headers, timeout=15)
+        resp = requests.get("https://api.github.com/search/repositories", params=params,
+                            headers=headers, timeout=15)
         resp.raise_for_status()
         items = resp.json().get('items', [])
         result = [{
+            'id': r['id'],
             'name': r['full_name'],
+            'owner': r['owner']['login'],
             'url': r['html_url'],
             'stars': r['stargazers_count'],
             'description': r['description'] or '',
             'forks': r['forks_count'],
+            'watchers': r['watchers_count'],
+            'language': r['language'],
         } for r in items]
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": f"Error searching repos: {e}"}), 500
+
 
 @app.route('/api/posts', methods=['GET'])
 def get_posts():
@@ -368,7 +407,9 @@ def get_posts():
 
 @app.route('/api/test/create-sample-posts', methods=['POST'])
 def create_sample_posts():
-    """Create sample posts for testing"""
+    """Create sample posts for testing (disabled in production)"""
+    if os.getenv('FLASK_ENV') == 'production':
+        return jsonify({"error": "Not available in production"}), 404
     try:
         sample_posts = [
             Post(repo_name="open-webui/open-webui", idea="hello"),
@@ -387,7 +428,7 @@ def create_sample_posts():
 
 @app.route('/api/posts', methods=['POST'])
 def add_post():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     repo_name = data.get('repo_name')
     idea = data.get('idea')
     if repo_name and idea:
@@ -418,7 +459,7 @@ def get_comments(post_id):
 @app.route('/api/posts/<int:post_id>/comments', methods=['POST'])
 def add_comment(post_id):
     post = Post.query.get_or_404(post_id)
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     text = data.get('text')
     if not text:
         return jsonify({'success': False, 'message': 'Comment text required.'}), 400
@@ -430,6 +471,62 @@ def add_comment(post_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': 'Database error.'}), 500
+
+# --- Discussions API (formerly the separate backends/server.js service) ---
+@app.route('/api/discussions', methods=['GET'])
+def list_discussions():
+    items = Discussion.query.order_by(Discussion.timestamp.desc()).all()
+    return jsonify([d.to_dict() for d in items])
+
+@app.route('/api/discussions/<int:discussion_id>', methods=['GET'])
+def get_discussion(discussion_id):
+    d = db.session.get(Discussion, discussion_id)
+    if not d:
+        return jsonify({'error': 'Discussion not found'}), 404
+    return jsonify(d.to_dict())
+
+@app.route('/api/discussions', methods=['POST'])
+def create_discussion():
+    data = request.get_json(silent=True) or {}
+    title, content = (data.get('title') or '').strip(), (data.get('content') or '').strip()
+    if not title or not content:
+        return jsonify({'error': 'Title and content are required.'}), 400
+    d = Discussion(author=(data.get('author') or 'Anonymous').strip()[:100] or 'Anonymous',
+                   title=title[:300], content=content)
+    db.session.add(d)
+    db.session.commit()
+    return jsonify(d.to_dict()), 201
+
+@app.route('/api/discussions/<int:discussion_id>/like', methods=['POST'])
+def like_discussion(discussion_id):
+    d = db.session.get(Discussion, discussion_id)
+    if not d:
+        return jsonify({'error': 'Discussion not found'}), 404
+    d.likes = Discussion.likes + 1  # atomic increment in SQL
+    db.session.commit()
+    return jsonify({'likes': d.likes})
+
+@app.route('/api/discussions/<int:discussion_id>/replies', methods=['GET'])
+def list_replies(discussion_id):
+    d = db.session.get(Discussion, discussion_id)
+    if not d:
+        return jsonify({'error': 'Discussion not found'}), 404
+    return jsonify([r.to_dict() for r in d.replies])
+
+@app.route('/api/discussions/<int:discussion_id>/replies', methods=['POST'])
+def add_reply(discussion_id):
+    d = db.session.get(Discussion, discussion_id)
+    if not d:
+        return jsonify({'error': 'Discussion not found'}), 404
+    data = request.get_json(silent=True) or {}
+    content = (data.get('content') or '').strip()
+    if not content:
+        return jsonify({'error': 'Reply content is required.'}), 400
+    r = DiscussionReply(author=(data.get('author') or 'Anonymous').strip()[:100] or 'Anonymous',
+                        content=content, discussion_id=d.id)
+    db.session.add(r)
+    db.session.commit()
+    return jsonify(r.to_dict()), 201
 
 # --- Run the App ---
 if __name__ == '__main__':

@@ -5,13 +5,15 @@ import ContentArea from '../components/ContentArea';
 const HomePage = () => {
     const [activeSection, setActiveSection] = React.useState('trending');
     const [selectedRepo, setSelectedRepo] = React.useState(null);
+    const [ideaRepo, setIdeaRepo] = React.useState(null);
 
     const handleAnalyzeRepo = (repo) => {
         setSelectedRepo(repo);
         setActiveSection('analyzer');
     };
 
-    const handleShareIdea = () => {
+    const handleShareIdea = (repo) => {
+        if (repo) setIdeaRepo(repo);
         setActiveSection('ideas');
     };
 
@@ -22,6 +24,7 @@ const HomePage = () => {
                 <ContentArea 
                     activeSection={activeSection} 
                     selectedRepo={selectedRepo}
+                    ideaRepo={ideaRepo || selectedRepo}
                     onAnalyzeRepo={handleAnalyzeRepo}
                     onShareIdea={handleShareIdea}
                 />

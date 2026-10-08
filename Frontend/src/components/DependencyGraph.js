@@ -1,6 +1,20 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 
+const FILE_COLORS = {
+  js: '#f7df1e', jsx: '#61dafb', ts: '#3178c6', tsx: '#3178c6', py: '#3776ab', java: '#ed8b00',
+  cpp: '#00599c', c: '#a8b9cc', html: '#e34f26', css: '#1572b6', json: '#000000', md: '#083fa1',
+  yml: '#cb171e', yaml: '#cb171e', xml: '#0060ac', go: '#00add8', rs: '#dea584', rb: '#cc342d'
+};
+const FILE_CATEGORIES = {
+  js: 'Source code', jsx: 'Source code', ts: 'Source code', tsx: 'Source code', py: 'Source code',
+  java: 'Source code', cpp: 'Source code', c: 'Source code', go: 'Source code', rs: 'Source code',
+  rb: 'Source code', html: 'Markup', css: 'Stylesheet', scss: 'Stylesheet', json: 'Config / data',
+  yml: 'Config', yaml: 'Config', toml: 'Config', xml: 'Config / data', md: 'Documentation',
+  txt: 'Documentation', png: 'Asset', jpg: 'Asset', svg: 'Asset'
+};
+const getFileColor = (extension) => FILE_COLORS[extension] || '#6c757d';
+
 const DependencyGraph = ({ structureAnalysis, repoInfo, fileStructure }) => {
   const svgRef = useRef();
   const [selectedNode, setSelectedNode] = useState(null);
@@ -9,188 +23,58 @@ const DependencyGraph = ({ structureAnalysis, repoInfo, fileStructure }) => {
   const [currentPath, setCurrentPath] = useState([]);
   const [breadcrumbs, setBreadcrumbs] = useState([{ name: 'Root', path: [] }]);
 
-  // Get file color based on extension
-  const getFileColor = (extension) => {
-    const fileTypeConfig = {
-      'js': '#f7df1e',
-      'jsx': '#61dafb',
-      'ts': '#3178c6',
-      'tsx': '#3178c6',
-      'py': '#3776ab',
-      'java': '#ed8b00',
-      'cpp': '#00599c',
-      'c': '#a8b9cc',
-      'html': '#e34f26',
-      'css': '#1572b6',
-      'json': '#000000',
-      'md': '#083fa1',
-      'yml': '#cb171e',
-      'yaml': '#cb171e',
-      'xml': '#0060ac',
-      'default': '#6c757d'
-    };
-    return fileTypeConfig[extension] || fileTypeConfig.default;
-  };
-
-  // Parse structure for specific path
+  // Parse structure for specific path. A hub node represents the current folder and
+  // links to every child; ids are prefixed so a file and folder with the same name don't clash.
   const parseStructureForPath = useCallback((path) => {
-    // Use real GitHub repository structure if available
-    if (!fileStructure || !repoInfo) {
-      // Fallback to sample data if no real data available
-      const structure = {
-        'root': {
-          directories: ['src', 'public', 'docs'],
-          files: ['package.json', 'README.md', '.gitignore']
-        },
-        'src': {
-          directories: ['components', 'pages', 'utils'],
-          files: ['App.js', 'index.js', 'App.css']
-        },
-        'components': {
-          directories: [],
-          files: ['Header.js', 'Footer.js', 'Sidebar.js', 'DependencyGraph.js']
-        }
-      };
-      const currentLevel = path.length === 0 ? 'root' : path[path.length - 1];
-      const levelData = structure[currentLevel] || { directories: [], files: [] };
-      
-      const nodes = [];
-      const links = [];
-
-      // Add back button if not at root
-      if (path.length > 0) {
-        nodes.push({
-          id: 'back',
-          name: '← Back',
-          type: 'back',
-          size: 15,
-          color: '#6c757d'
-        });
-      }
-
-      // Add directories and files from fallback data
-      levelData.directories.forEach(dir => {
-        nodes.push({
-          id: dir,
-          name: dir,
-          type: 'directory',
-          size: 20,
-          color: '#ffd700',
-          canDrillDown: true
-        });
-      });
-
-      levelData.files.forEach(file => {
-        const extension = file.split('.').pop().toLowerCase();
-        nodes.push({
-          id: file,
-          name: file,
-          type: 'file',
-          extension,
-          size: 12,
-          color: getFileColor(extension)
-        });
-      });
-
-      // Create links
-      for (let i = 1; i < nodes.length; i++) {
-        links.push({
-          source: nodes[0].id === 'back' ? nodes[1].id : nodes[0].id,
-          target: nodes[i].id,
-          type: 'contains'
-        });
-      }
-
-      return { nodes, links };
-    }
-
-    // Parse real GitHub file structure
-    const allFiles = fileStructure.split('\n').filter(file => file.trim());
-    
-    // Build hierarchical structure from file paths
-    const currentPathStr = path.join('/');
-    const directories = new Set();
-    const files = [];
-    
-    allFiles.forEach(filePath => {
-      if (currentPathStr === '') {
-        // Root level
-        const parts = filePath.split('/');
-        if (parts.length === 1) {
-          // File in root
-          files.push(parts[0]);
-        } else {
-          // Directory in root
-          directories.add(parts[0]);
-        }
-      } else {
-        // Subdirectory level
-        if (filePath.startsWith(currentPathStr + '/')) {
-          const relativePath = filePath.substring(currentPathStr.length + 1);
-          const parts = relativePath.split('/');
-          if (parts.length === 1) {
-            // File in current directory
-            files.push(parts[0]);
-          } else {
-            // Subdirectory in current directory
-            directories.add(parts[0]);
-          }
-        }
-      }
-    });
-
-    const levelData = {
-      directories: Array.from(directories),
-      files: files
-    };
-    
     const nodes = [];
     const links = [];
+    if (!fileStructure) return { nodes, links };
 
-    // Add back button if not at root
+    const allFiles = fileStructure.split('\n').filter(file => file.trim());
+    const prefix = path.length ? path.join('/') + '/' : '';
+    const dirCounts = new Map();
+    const files = [];
+    allFiles.forEach(filePath => {
+      if (prefix && !filePath.startsWith(prefix)) return;
+      const parts = filePath.substring(prefix.length).split('/');
+      if (parts.length === 1) {
+        files.push(parts[0]);
+      } else {
+        dirCounts.set(parts[0], (dirCounts.get(parts[0]) || 0) + 1);
+      }
+    });
+
+    const hubName = path.length ? path[path.length - 1] : (repoInfo?.name || 'Root');
+    const childCount = dirCounts.size + files.length;
+    nodes.push({
+      id: 'hub', name: hubName, type: 'hub', size: 24, color: '#8b5cf6',
+      connections: childCount, category: 'Current folder'
+    });
+
     if (path.length > 0) {
-      nodes.push({
-        id: 'back',
-        name: '← Back',
-        type: 'back',
-        size: 15,
-        color: '#6c757d'
-      });
+      nodes.push({ id: 'back', name: '← Back', type: 'back', size: 15, color: '#6c757d',
+        connections: 1, category: 'Navigation' });
     }
 
-    // Add directories
-    levelData.directories.forEach(dir => {
+    Array.from(dirCounts.keys()).sort().forEach(dir => {
       nodes.push({
-        id: dir,
-        name: dir,
-        type: 'directory',
-        size: 20,
-        color: '#ffd700',
-        canDrillDown: true
+        id: `dir:${dir}`, name: dir, type: 'directory', size: 20, color: '#ffd700',
+        canDrillDown: true, connections: dirCounts.get(dir), category: 'Directory'
       });
     });
 
-    // Add files
-    levelData.files.forEach(file => {
-      const extension = file.split('.').pop().toLowerCase();
+    files.sort().forEach(file => {
+      const extension = file.includes('.') ? file.split('.').pop().toLowerCase() : '';
       nodes.push({
-        id: file,
-        name: file,
-        type: 'file',
-        extension,
-        size: 12,
-        color: getFileColor(extension)
+        id: `file:${file}`, name: file, type: 'file', extension, size: 12,
+        color: getFileColor(extension), connections: 1,
+        category: FILE_CATEGORIES[extension] || 'Other file'
       });
     });
 
-    // Create links
-    for (let i = 1; i < nodes.length; i++) {
-      links.push({
-        source: nodes[0].id === 'back' ? nodes[1].id : nodes[0].id,
-        target: nodes[i].id,
-        type: 'contains'
-      });
-    }
+    nodes.slice(1).forEach(node => {
+      links.push({ source: 'hub', target: node.id, type: 'contains' });
+    });
 
     return { nodes, links };
   }, [fileStructure, repoInfo]);
@@ -317,6 +201,7 @@ const DependencyGraph = ({ structureAnalysis, repoInfo, fileStructure }) => {
     // Add icons to nodes
     nodeGroups.append('text')
       .text(d => {
+        if (d.type === 'hub') return '📂';
         if (d.type === 'back') return '🔙';
         if (d.type === 'directory') return '📁';
         if (d.type === 'file') {
@@ -411,7 +296,7 @@ const DependencyGraph = ({ structureAnalysis, repoInfo, fileStructure }) => {
 
     function handleClick(event, d) {
       if (d.type === 'directory' && d.canDrillDown) {
-        navigateToDirectory(d.id);
+        navigateToDirectory(d.name);
       } else if (d.type === 'back') {
         navigateBack();
       } else {

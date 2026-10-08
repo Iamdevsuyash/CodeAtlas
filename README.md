@@ -131,7 +131,7 @@ pip install -r requirements.txt
 # Set environment variables
 # Create a .env file and add:
 GITHUB_TOKEN=your_github_token_here
-GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_API_KEYS=key1,key2,key3   # one or more, comma-separated (rotated automatically)
 SECRET_KEY=your_secret_key_here
 
 # Run backend
@@ -154,7 +154,7 @@ Frontend runs at: `http://localhost:3000`
 | Key | Where to Get |
 |-----|-------------|
 | `GITHUB_TOKEN` | github.com → Settings → Developer Settings → Personal Access Tokens |
-| `GEMINI_API_KEY` | [aistudio.google.com](https://aistudio.google.com) |
+| `GEMINI_API_KEYS` | [aistudio.google.com](https://aistudio.google.com) — comma-separated; keys from different Google Cloud projects multiply quota |
 
 ---
 
@@ -197,7 +197,7 @@ Start Command: python backend1.py
 Environment Variables:
 FLASK_ENV        = production
 GITHUB_TOKEN     = your_token
-GEMINI_API_KEY   = your_key
+GEMINI_API_KEYS  = key1,key2,...
 DATABASE_URL     = (auto-set by Render PostgreSQL)
 CORS_ORIGINS     = https://gitatlas.netlify.app
 ```

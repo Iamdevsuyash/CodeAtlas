@@ -12,7 +12,7 @@ services:
         value: production
       - key: GITHUB_TOKEN
         sync: false
-      - key: GEMINI_API_KEY
+      - key: GEMINI_API_KEYS
         sync: false
       - key: SECRET_KEY
         generateValue: true

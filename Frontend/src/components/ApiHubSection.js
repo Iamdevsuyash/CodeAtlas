@@ -4,8 +4,8 @@ const API_CATEGORIES = [
     {
         label: 'Technology',
         apis: [
-            { name: 'GitHub', desc: 'Host and review code, manage projects, and build software.', link: 'https://api.github.com/' },
-            { name: 'Stack Exchange', desc: 'Access Q&A for programming and tech topics.', link: 'https://api.stackexchange.com/' },
+            { name: 'GitHub', desc: 'Host and review code, manage projects, and build software.', link: 'https://docs.github.com/en/rest' },
+            { name: 'Stack Exchange', desc: 'Access Q&A for programming and tech topics.', link: 'https://api.stackexchange.com/docs' },
             { name: 'WolframAlpha', desc: 'Computational knowledge engine for answers and data.', link: 'https://products.wolframalpha.com/api/' },
         ],
     },
@@ -14,7 +14,7 @@ const API_CATEGORIES = [
         apis: [
             { name: 'Judge0', desc: 'Online code execution and compilation API.', link: 'https://judge0.com/' },
             { name: 'Codeforces', desc: 'Competitive programming contest and user data.', link: 'https://codeforces.com/apiHelp' },
-            { name: 'HackerRank', desc: 'Programming challenges and user data.', link: 'https://www.hackerrank.com/auth/oauth/authorize' },
+            { name: 'Codewars', desc: 'Kata challenges and user profile data.', link: 'https://dev.codewars.com/' },
         ],
     },
     {
@@ -52,7 +52,7 @@ const API_CATEGORIES = [
     {
         label: 'Health',
         apis: [
-            { name: 'COVID-19 API', desc: 'COVID-19 statistics and data.', link: 'https://covid19api.com/' },
+            { name: 'openFDA', desc: 'Drug, device and food safety data from the US FDA.', link: 'https://open.fda.gov/apis/' },
             { name: 'Nutritionix', desc: 'Nutrition data for foods and restaurants.', link: 'https://developer.nutritionix.com/' },
             { name: 'Open Disease Data', desc: 'Disease outbreak data.', link: 'https://disease.sh/' },
         ],
@@ -62,7 +62,7 @@ const API_CATEGORIES = [
         apis: [
             { name: 'Alpha Vantage', desc: 'Stock and forex data.', link: 'https://www.alphavantage.co/documentation/' },
             { name: 'CoinGecko', desc: 'Cryptocurrency data and market info.', link: 'https://www.coingecko.com/en/api' },
-            { name: 'IEX Cloud', desc: 'Stock market data.', link: 'https://iexcloud.io/docs/api/' },
+            { name: 'Finnhub', desc: 'Real-time stock, forex and crypto market data.', link: 'https://finnhub.io/docs/api' },
         ],
     },
     {
@@ -78,7 +78,7 @@ const API_CATEGORIES = [
         apis: [
             { name: 'OpenWeatherMap', desc: 'Weather data and forecasts.', link: 'https://openweathermap.org/api' },
             { name: 'Weatherbit', desc: 'Weather data and forecasts.', link: 'https://www.weatherbit.io/api' },
-            { name: 'MetaWeather', desc: 'Weather data and forecasts.', link: 'https://www.metaweather.com/api/' },
+            { name: 'Open-Meteo', desc: 'Free weather forecasts with no API key required.', link: 'https://open-meteo.com/en/docs' },
         ],
     },
 ];

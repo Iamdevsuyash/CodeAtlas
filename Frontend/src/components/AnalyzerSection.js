@@ -3,68 +3,49 @@ import { getApiUrl } from "../config/api";
 import DependencyGraph from "./DependencyGraph";
 
 const extractRepoInfo = (url) => {
-  const match = url.match(/github\.com\/([^/]+)\/([^/]+)/);
+  const match = url.match(/github\.com[/:]([^/\s]+)\/([^/\s#?]+)/);
   if (match) {
+    const name = match[2].replace(/\.git$/, "");
     return {
       owner: match[1],
-      name: match[2],
-      fullName: `${match[1]}/${match[2]}`,
+      name,
+      fullName: `${match[1]}/${name}`,
     };
   }
   return null;
 };
 
+// Survives unmounts (switching sidebar sections) so results aren't re-requested.
+const analysisCache = new Map();
+let lastAnalysis = null; // { url, data }
+
 const AnalyzerSection = ({ selectedRepo }) => {
-  const [repoUrl, setRepoUrl] = useState("");
-  const [analysis, setAnalysis] = useState(null);
+  const [repoUrl, setRepoUrl] = useState(lastAnalysis?.url || "");
+  const [analysis, setAnalysis] = useState(lastAnalysis?.data || null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
-  const [repoInfo, setRepoInfo] = useState(null);
+  const [repoInfo, setRepoInfo] = useState(
+    lastAnalysis ? extractRepoInfo(lastAnalysis.url) : null
+  );
   const [animateCards, setAnimateCards] = useState(false);
-  const [fileStructure, setFileStructure] = useState(null);
-
-  const fetchRepoStructure = useCallback(async (owner, repo) => {
-    try {
-      // Fetch repository tree from GitHub API
-      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/HEAD?recursive=1`);
-      
-      if (!response.ok) {
-        console.warn('Failed to fetch repository structure from GitHub API');
-        return;
-      }
-      
-      const data = await response.json();
-      
-      // Extract file paths from the tree
-      const filePaths = data.tree
-        .filter(item => item.type === 'blob') // Only files, not directories
-        .map(item => item.path)
-        .join('\n');
-      
-      setFileStructure(filePaths);
-    } catch (error) {
-      console.warn('Error fetching repository structure:', error);
-    }
-  }, []);
 
   const startAnalysis = useCallback((url) => {
     if (!url) return;
-    setLoading(true);
-    setError(null);
-    setAnalysis(null);
-    setFileStructure(null);
     const info = extractRepoInfo(url);
     setRepoInfo(info);
-
-    // Fetch repository structure from GitHub API
-    if (info) {
-      fetchRepoStructure(info.owner, info.name);
+    setError(null);
+    const cacheKey = info ? info.fullName.toLowerCase() : url;
+    if (analysisCache.has(cacheKey)) {
+      const data = analysisCache.get(cacheKey);
+      lastAnalysis = { url, data };
+      setAnalysis(data);
+      return;
     }
+    setLoading(true);
+    setAnalysis(null);
 
-    const apiUrl = getApiUrl('/api/analyze');
-    
-    fetch(apiUrl, {
+    fetch(getApiUrl("/api/analyze"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ repo_url: url }),
@@ -79,11 +60,14 @@ const AnalyzerSection = ({ selectedRepo }) => {
       })
       .then((data) => {
         if (data.error) throw new Error(data.error);
+        analysisCache.set(cacheKey, data);
+        lastAnalysis = { url, data };
         setAnalysis(data);
+        setActiveTab("overview");
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [fetchRepoStructure]);
+  }, []);
 
   const handleAnalyzeRepo = (e) => {
     e.preventDefault();
@@ -91,7 +75,8 @@ const AnalyzerSection = ({ selectedRepo }) => {
   };
 
   useEffect(() => {
-    if (selectedRepo && selectedRepo.url) {
+    // Only analyze a newly selected repo; remounting with the same one reuses the result.
+    if (selectedRepo && selectedRepo.url && selectedRepo.url !== lastAnalysis?.url) {
       setRepoUrl(selectedRepo.url);
       startAnalysis(selectedRepo.url);
     }
@@ -105,48 +90,27 @@ const AnalyzerSection = ({ selectedRepo }) => {
     }
   }, [analysis]);
 
-  const parseStructureAnalysis = (htmlContent) => {
-    if (!htmlContent) return null;
-
-    // Extract key metrics from the HTML content
-    const tempDiv = document.createElement("div");
-    tempDiv.innerHTML = htmlContent;
-    const text = tempDiv.textContent || tempDiv.innerText || "";
-
-    // Simple parsing to extract metrics
-    const lines = text.split("\n").filter((line) => line.trim());
-    const metrics = {
-      totalFiles: 0,
-      languages: [],
-      directories: [],
-      keyFiles: [],
-    };
-
-    lines.forEach((line) => {
-      if (line.includes("files") || line.includes("Files")) {
-        const match = line.match(/(\d+)/);
-        if (match) metrics.totalFiles = parseInt(match[1]);
-      }
-      if (
-        line.includes(".js") ||
-        line.includes(".py") ||
-        line.includes(".java") ||
-        line.includes(".cpp")
-      ) {
-        const lang = line.match(/\.(\w+)/);
-        if (lang && !metrics.languages.includes(lang[1])) {
-          metrics.languages.push(lang[1]);
-        }
-      }
+  const computeMetrics = (data) => {
+    const paths = (data?.file_structure || "").split("\n").filter(Boolean);
+    const codeExt = new Set(["js", "jsx", "ts", "tsx", "py", "java", "go", "rs", "rb", "php", "cs",
+      "cpp", "cc", "c", "h", "hpp", "swift", "kt", "dart", "scala", "vue", "svelte", "lua", "ex", "sh"]);
+    const languages = new Set();
+    paths.forEach((p) => {
+      const ext = p.includes(".") ? p.split(".").pop().toLowerCase() : "";
+      if (codeExt.has(ext)) languages.add(ext);
     });
-
-    return metrics;
+    return {
+      totalFiles: data?.repo?.file_count ?? paths.length,
+      languages: Array.from(languages),
+    };
   };
 
   const renderOverviewTab = () => {
     if (!analysis) return null;
 
-    const metrics = parseStructureAnalysis(analysis.structure_analysis);
+    const metrics = computeMetrics(analysis);
+    const overview = analysis.project_overview || {};
+    const inferred = analysis.readme_source === "generated";
 
     return (
       <div className="overview-grid">
@@ -163,7 +127,7 @@ const AnalyzerSection = ({ selectedRepo }) => {
           <div className="metric-icon">📁</div>
           <div className="metric-content">
             <h3>Total Files</h3>
-            <div className="metric-value">{metrics?.totalFiles || "N/A"}</div>
+            <div className="metric-value">{metrics.totalFiles || "N/A"}</div>
             <div className="metric-label">Files Detected</div>
           </div>
         </div>
@@ -172,9 +136,7 @@ const AnalyzerSection = ({ selectedRepo }) => {
           <div className="metric-icon">💻</div>
           <div className="metric-content">
             <h3>Languages</h3>
-            <div className="metric-value">
-              {metrics?.languages?.length || 0}
-            </div>
+            <div className="metric-value">{metrics.languages.length}</div>
             <div className="metric-label">Programming Languages</div>
           </div>
         </div>
@@ -197,20 +159,45 @@ const AnalyzerSection = ({ selectedRepo }) => {
               <span className="insight-icon">🎯</span>
               <span>
                 Repository: <strong>{repoInfo?.fullName}</strong>
+                {overview.category && <> · {overview.category}</>}
               </span>
             </div>
+            {overview.purpose && (
+              <div className="insight-item">
+                <span className="insight-icon">💡</span>
+                <span>{overview.purpose}</span>
+              </div>
+            )}
+            {overview.tech_stack?.length > 0 && (
+              <div className="insight-item">
+                <span className="insight-icon">🧰</span>
+                <span>Tech stack: {overview.tech_stack.join(", ")}</span>
+              </div>
+            )}
             <div className="insight-item">
-              <span className="insight-icon">🏗️</span>
-              <span>Structure analyzed and documented</span>
+              <span className="insight-icon">{inferred ? "🧠" : "✅"}</span>
+              <span>
+                {inferred
+                  ? "No README found: purpose inferred from the most relevant source files"
+                  : `README summary from ${analysis.readme_path || "README"}`}
+              </span>
             </div>
-            <div className="insight-item">
-              <span className="insight-icon">📋</span>
-              <span>Setup guide generated</span>
-            </div>
-            <div className="insight-item">
-              <span className="insight-icon">✅</span>
-              <span>README summary available</span>
-            </div>
+            {analysis.key_files?.length > 0 && (
+              <div className="insight-item">
+                <span className="insight-icon">🔑</span>
+                <span>Key files read: {analysis.key_files.map((f) => f.path).join(", ")}</span>
+              </div>
+            )}
+            {analysis.ai_meta && (
+              <div className="insight-item">
+                <span className="insight-icon">⚡</span>
+                <span>
+                  {analysis.ai_meta.cached
+                    ? "Served from cache (0 tokens)"
+                    : `${analysis.ai_meta.tokens ?? "?"} tokens · ${analysis.ai_meta.model}`}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -227,7 +214,11 @@ const AnalyzerSection = ({ selectedRepo }) => {
           <div className="content-icon">📖</div>
           <div>
             <h3>README Analysis</h3>
-            <p>AI-powered summary and insights from the repository's README</p>
+            <p>
+              {analysis.readme_source === "generated"
+                ? "This repository has no README, so CodeAtlas read its most relevant files and wrote one"
+                : "AI-powered summary and insights from the repository's README"}
+            </p>
           </div>
         </div>
         <div className="content-body">
@@ -236,6 +227,32 @@ const AnalyzerSection = ({ selectedRepo }) => {
             dangerouslySetInnerHTML={{ __html: analysis.readme_summary }}
           />
         </div>
+        {analysis.generated_readme && (
+          <>
+            <div className="content-header">
+              <div className="content-icon">📝</div>
+              <div>
+                <h3>Generated README</h3>
+                <p>Drafted from: {(analysis.key_files || []).map((f) => f.path).join(", ")}</p>
+              </div>
+              <button
+                type="button"
+                className="search-button"
+                onClick={() =>
+                  navigator.clipboard?.writeText(analysis.generated_readme_markdown || "")
+                }
+              >
+                Copy Markdown
+              </button>
+            </div>
+            <div className="content-body">
+              <div
+                className="formatted-content"
+                dangerouslySetInnerHTML={{ __html: analysis.generated_readme }}
+              />
+            </div>
+          </>
+        )}
       </div>
     );
   };
@@ -291,10 +308,10 @@ const AnalyzerSection = ({ selectedRepo }) => {
   };
 
   const renderGraphTab = () => {
-    if (!analysis?.structure_analysis)
+    if (!analysis?.file_structure)
       return (
         <div className="no-data">
-          No structure analysis available for graph visualization
+          No file structure available for graph visualization
         </div>
       );
 
@@ -302,7 +319,7 @@ const AnalyzerSection = ({ selectedRepo }) => {
       <DependencyGraph
         structureAnalysis={analysis.structure_analysis}
         repoInfo={repoInfo}
-        fileStructure={fileStructure}
+        fileStructure={analysis.file_structure}
       />
     );
   };

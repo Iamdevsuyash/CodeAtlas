@@ -2,7 +2,7 @@ import requests
 import json
 
 def test_discussions():
-    base_url = "http://localhost:3001"
+    base_url = "http://localhost:5000"  # discussions now live in the Flask API
     
     # Test health check
     print("Testing discussions health check...")

@@ -47,6 +47,8 @@ const TrendingSection = ({ onAnalyze, onShareIdea }) => {
 
   useEffect(() => {
     fetchTrendingRepos();
+    // Mount-only fetch; later fetches are triggered by search.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSearch = (e) => {
@@ -168,7 +170,7 @@ const TrendingSection = ({ onAnalyze, onShareIdea }) => {
                 </button>
                 <button
                   className="icon-btn"
-                  onClick={onShareIdea}
+                  onClick={() => onShareIdea(repo)}
                   title="Share Idea"
                   aria-label="Share Idea"
                 >

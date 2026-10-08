@@ -72,7 +72,7 @@ const IdeasSection = ({ selectedRepo }) => {
       .catch((error) => {
         console.error("Error fetching discussions:", error);
         setDiscussionError(
-          "Failed to load discussions. Please check if the discussions server is running."
+          "Failed to load discussions. Please check if the backend server is running."
         );
         setDiscussionsLoading(false);
       });
@@ -81,6 +81,8 @@ const IdeasSection = ({ selectedRepo }) => {
   useEffect(() => {
     fetchPosts();
     fetchDiscussions();
+    // Mount-only fetch; later refreshes happen after each submit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -248,7 +250,16 @@ const IdeasSection = ({ selectedRepo }) => {
     fetch(getApiUrl(`/api/posts/${postId}/comments`))
       .then((res) => res.json())
       .then((data) => {
+        if (!Array.isArray(data)) throw new Error(data.error || "Failed to load replies.");
         setComments((prev) => ({ ...prev, [postId]: data }));
+        setPosts((prev) =>
+          prev.map((p) => (p.id === postId ? { ...p, comments_count: data.length } : p))
+        );
+      })
+      .catch((err) => {
+        setCommentError((prev) => ({ ...prev, [postId]: err.message || "Failed to load replies." }));
+      })
+      .finally(() => {
         setCommentLoading((prev) => ({ ...prev, [postId]: false }));
       });
   };

@@ -2,12 +2,12 @@ const express = require('express');
 const fs = require('fs');
 const cors = require('cors');
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
 
-const DATA_FILE = './discussions.json';
+const DATA_FILE = require('path').join(__dirname, 'discussions.json');
 
 // Helper to read discussions
 function readDiscussions() {

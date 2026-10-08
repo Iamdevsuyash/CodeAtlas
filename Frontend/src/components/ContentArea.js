@@ -8,7 +8,7 @@ import ProjectsSection from './ProjectsSection';
 import Header from './Header';
 import ApiHubSection from './ApiHubSection';
 
-const ContentArea = ({ activeSection, selectedRepo, onAnalyzeRepo, onShareIdea }) => {
+const ContentArea = ({ activeSection, selectedRepo, ideaRepo, onAnalyzeRepo, onShareIdea }) => {
     const renderSection = () => {
         switch (activeSection) {
             case 'analyzer':
@@ -20,7 +20,7 @@ const ContentArea = ({ activeSection, selectedRepo, onAnalyzeRepo, onShareIdea }
             case 'apihub':
                 return <ApiHubSection />;
             case 'ideas':
-                return <IdeasSection selectedRepo={selectedRepo} />;
+                return <IdeasSection selectedRepo={ideaRepo} />;
             case 'projects':
                 return <ProjectsSection />;
             default:

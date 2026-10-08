@@ -58,7 +58,7 @@ In Render dashboard → Environment:
 ```
 FLASK_ENV=production
 GITHUB_TOKEN=your_github_token_here
-GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_API_KEYS=key1,key2,key3
 SECRET_KEY=your_secret_key_here
 CORS_ORIGINS=https://your-netlify-app.netlify.app
 DATABASE_URL=postgresql://user:password@host:port/dbname
