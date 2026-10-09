@@ -198,7 +198,9 @@ class GeminiPool:
                 break
             ks, wait = self._acquire()
             if ks is None:
-                raise GeminiError("All Gemini API keys were rejected as invalid.")
+                raise GeminiError(
+                    "All Gemini API keys were rejected as invalid. "
+                    "Update GEMINI_API_KEYS in the server environment and restart it.")
             if wait > 0:
                 if wait > 20 or time.time() + wait - started > deadline_s:
                     raise GeminiError(f"All Gemini API keys are rate-limited; retry in {int(wait) + 1}s.")
